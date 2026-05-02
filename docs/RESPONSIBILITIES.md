@@ -65,11 +65,41 @@ No se bloquean entre ellos. Pueden abrirse como PRs a develop desde el lunes y m
 
 ## Criterios de revisión para cada PR
 
-Antes de aprobar un PR, el revisor debe verificar:
+El revisor es **responsable de garantizar** que el código funciona correctamente antes de aprobar. No basta con leer el código — hay que ejecutarlo.
 
-- [ ] El script no tiene errores de sintaxis (`bash -n <archivo>`)
+### Verificación obligatoria antes de aprobar
+
+**1. Verificar sintaxis (sin errores de compilación):**
+```bash
+bash -n src/<archivo-del-pr>.sh
+# Si no imprime nada → sin errores de sintaxis
+```
+
+**2. Ejecutar el script completo y probar el módulo:**
+```bash
+sudo bash main.sh
+# Navegar al submenú del PR que estás revisando
+# Probar cada opción del menú al menos una vez
+```
+
+**3. Casos de prueba mínimos por módulo:**
+
+| Módulo    | Qué probar                                                        |
+|-----------|-------------------------------------------------------------------|
+| utils     | Llamar `print_header`, `msg_ok`, `msg_err`, `confirmar_accion`    |
+| usuarios  | Alta con usuario nuevo, alta con usuario ya existente (debe fallar elegante), baja, consulta de usuario inexistente |
+| grupos    | Alta con grupo nuevo, baja, consulta, agregar miembro             |
+| procesos  | Usuario con procesos activos, usuario sin procesos, usuario inexistente |
+
+### Checklist de aprobación
+
+- [ ] `bash -n <archivo>` no reporta errores de sintaxis
+- [ ] El script completo corre sin errores al navegar por el módulo
 - [ ] Las funciones tienen los nombres correctos (sin cambiar los stubs)
-- [ ] Cada función de usuario/grupo verifica si el recurso existe/no existe antes de actuar
-- [ ] Se usan `msg_ok`, `msg_err`, `msg_warn` de `utils.sh` para los mensajes
+- [ ] Cada función verifica si el usuario/grupo existe antes de actuar
+- [ ] Se usan `msg_ok`, `msg_err`, `msg_warn` de `utils.sh` para todos los mensajes
 - [ ] Las acciones destructivas (baja, eliminar) piden confirmación con `confirmar_accion`
-- [ ] El código tiene comentarios mínimos para entender qué hace cada bloque
+- [ ] El PR tiene descripción completa en español
+- [ ] El código tiene comentarios mínimos que expliquen bloques no obvios
+
+Si algo del checklist falla, el revisor deja un comentario en español explicando exactamente qué falló y cómo reproducirlo, y **no aprueba** hasta que esté corregido.

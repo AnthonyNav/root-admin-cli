@@ -50,21 +50,59 @@ git push origin feat/users-module
 **Qué significa:**  
 Incluso un cambio de una línea (typo, comentario) debe ir como commit en la rama feature y subirse mediante PR. Esto mantiene el historial limpio y permite que el equipo vea exactamente qué cambió.
 
-**Convención de commits:**
+### Idiomas
+
+| Elemento                        | Idioma   |
+|---------------------------------|----------|
+| Mensajes de commit              | Inglés   |
+| Nombre de ramas                 | Inglés   |
+| Título del Pull Request         | Inglés   |
+| Descripción y comentarios del PR| Español  |
+
+### Convención de commits (en inglés)
 
 ```
-feat: <descripción>    → funcionalidad nueva
-fix: <descripción>     → corrección de un bug
-docs: <descripción>    → cambios en documentación
-refactor: <descripción>→ refactorización sin cambio de comportamiento
+feat: <description>     → nueva funcionalidad
+fix: <description>      → corrección de un bug
+docs: <description>     → cambios en documentación
+refactor: <description> → refactorización sin cambio de comportamiento
+chore: <description>    → tareas de mantenimiento (setup, config)
 ```
 
 Ejemplos válidos:
 ```bash
-git commit -m "feat: implementar usuario_baja con confirmación"
-git commit -m "fix: corregir validación en grupo_consulta"
-git commit -m "docs: agregar ejemplos en PLANNING.md"
+git commit -m "feat: implement user deletion with home dir option"
+git commit -m "fix: handle non-existent user in group_query"
+git commit -m "docs: add usage examples to PLANNING.md"
+git commit -m "refactor: extract user input validation to utils"
 ```
+
+### Descripción del Pull Request (en español)
+
+Cuando abras tu PR en GitHub, la descripción es **obligatoria** y debe incluir en español:
+
+```
+## ¿Qué hace este PR?
+Descripción clara de lo que implementaste.
+
+## Funciones implementadas
+- función_a: descripción breve de qué hace
+- función_b: descripción breve de qué hace
+
+## Cómo probarlo
+Pasos concretos para que el revisor verifique que funciona.
+Ejemplo:
+  sudo bash main.sh
+  → Seleccionar opción 1 (Usuarios)
+  → Seleccionar opción 1 (Alta)
+  → Ingresar nombre de usuario "testuser"
+  → Verificar con: id testuser
+
+## Notas adicionales
+Decisiones tomadas, limitaciones conocidas, o cosas que el revisor debe saber.
+```
+
+**El revisor no aprobará un PR sin descripción completa.**
 
 ---
 
