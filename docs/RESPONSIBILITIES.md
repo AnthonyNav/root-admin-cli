@@ -10,7 +10,7 @@
 | #4  | `feat/groups-module`      | `src/groups.sh`     | Imanol      | NORMAL    |
 | #5  | `feat/processes-module`   | `src/processes.sh`  | Osvaldo     | NORMAL    |
 
-> Llenar la columna "Responsable" con el nombre real del miembro asignado.
+Para el detalle completo de qué implementar en cada PR (funciones, casos a manejar y cómo probarlo) → [`docs/TASKS.md`](TASKS.md)
 
 ---
 

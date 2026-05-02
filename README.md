@@ -80,6 +80,7 @@ admin-redes/
 └── docs/
     ├── PLANNING.md              ← alcance, decisiones técnicas, comandos
     ├── RESPONSIBILITIES.md      ← quién hace qué y orden de merge
+    ├── TASKS.md                 ← qué implementar en cada PR (leer tu sección)
     └── COLLABORATION_RULES.md  ← reglas de Git con ejemplos
 ```
 
