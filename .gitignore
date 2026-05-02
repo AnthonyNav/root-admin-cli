@@ -1,0 +1,18 @@
+# Logs y archivos temporales
+*.log
+*.tmp
+*.bak
+
+# Archivos de editores
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Variables de entorno locales
+.env
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db

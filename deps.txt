@@ -1,0 +1,19 @@
+# deps.txt — Dependencias del proyecto
+# Plataforma: AlmaLinux 9 (RHEL-compatible)
+#
+# Para verificar e instalar:
+#   bash setup.sh
+#
+# Para instalar manualmente:
+#   sudo dnf install $(grep -v '^#' deps.txt | tr '\n' ' ')
+#
+# Nota: todos estos paquetes vienen preinstalados en una instalación
+# mínima de AlmaLinux 9. El setup.sh verifica que los comandos estén
+# disponibles sin necesidad de instalar nada adicional en la mayoría
+# de los casos.
+
+shadow-utils
+procps-ng
+coreutils
+util-linux
+bash

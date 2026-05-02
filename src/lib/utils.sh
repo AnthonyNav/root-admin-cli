@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+#
+# src/lib/utils.sh — Helpers compartidos del proyecto
+# Plataforma: AlmaLinux 9  |  Bash 5.0+
+#
+# Autor del módulo: [Nombre] (PR #1 · feat/utils-lib)
+#
+# NOTA PARA EL EQUIPO:
+#   Este archivo es la RUTA CRÍTICA del proyecto. Los módulos
+#   users.sh, groups.sh y processes.sh dependen de las funciones
+#   aquí definidas. Por favor finaliza tu implementación antes
+#   del lunes por la mañana.
+#
+# Funciones públicas que DEBES implementar (no cambiar los nombres):
+#   print_header <título>
+#   msg_ok       <mensaje>
+#   msg_err      <mensaje>
+#   msg_warn     <mensaje>
+#   confirmar_accion <pregunta>  → retorna 0 (sí) o 1 (no)
+#   usuario_existe   <nombre>    → retorna 0 (existe) o 1 (no)
+#   grupo_existe     <nombre>    → retorna 0 (existe) o 1 (no)
+#   pausar                       → espera Enter del usuario
+#
+
+# ─── Colores ──────────────────────────────────────────────────────────────────
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+# ─── print_header <título> ────────────────────────────────────────────────────
+# Imprime un encabezado visual con separador.
+# Ejemplo de uso: print_header "Gestión de Usuarios"
+print_header() {
+    local titulo="$1"
+    echo ""
+    echo -e "${CYAN}${BOLD}╔══════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}${BOLD}  $titulo${NC}"
+    echo -e "${CYAN}${BOLD}╚══════════════════════════════════════════╝${NC}"
+    echo ""
+}
+
+# ─── msg_ok <mensaje> ─────────────────────────────────────────────────────────
+# Imprime un mensaje de éxito en verde.
+msg_ok() {
+    echo -e "${GREEN}[OK]${NC} $1"
+}
+
+# ─── msg_err <mensaje> ────────────────────────────────────────────────────────
+# Imprime un mensaje de error en rojo (a stderr).
+msg_err() {
+    echo -e "${RED}[ERROR]${NC} $1" >&2
+}
+
+# ─── msg_warn <mensaje> ───────────────────────────────────────────────────────
+# Imprime un aviso en amarillo.
+msg_warn() {
+    echo -e "${YELLOW}[AVISO]${NC} $1"
+}
+
+# ─── confirmar_accion <pregunta> ──────────────────────────────────────────────
+# Solicita confirmación al usuario.
+# Retorna 0 si el usuario responde 's' o 'S', 1 en cualquier otro caso.
+#
+# Ejemplo:
+#   if confirmar_accion "¿Deseas eliminar el usuario $usr?"; then
+#       userdel "$usr"
+#   fi
+confirmar_accion() {
+    local pregunta="$1"
+    local resp
+    read -rp "$pregunta [s/N]: " resp
+    [[ "$resp" =~ ^[sS]$ ]]
+}
+
+# ─── usuario_existe <nombre_usuario> ─────────────────────────────────────────
+# Verifica si un usuario existe en el sistema.
+# Retorna 0 si existe, 1 si no.
+#
+# Ejemplo:
+#   if usuario_existe "juan"; then
+#       echo "El usuario existe"
+#   fi
+usuario_existe() {
+    id "$1" &>/dev/null
+}
+
+# ─── grupo_existe <nombre_grupo> ─────────────────────────────────────────────
+# Verifica si un grupo existe en el sistema.
+# Retorna 0 si existe, 1 si no.
+grupo_existe() {
+    getent group "$1" &>/dev/null
+}
+
+# ─── pausar ───────────────────────────────────────────────────────────────────
+# Pausa la ejecución hasta que el usuario presione Enter.
+pausar() {
+    echo ""
+    read -rp "  Presiona Enter para continuar..."
+    echo ""
+}
