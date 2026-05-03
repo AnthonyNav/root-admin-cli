@@ -3,7 +3,7 @@
 # src/groups.sh — Módulo de gestión de grupos
 # Plataforma: AlmaLinux 9  |  Bash 5.0+
 #
-# Autor del módulo: [Nombre] (PR #4 · feat/groups-module)
+# Autor del módulo: Imanol (PR #4 · feat/groups-module)
 #
 # Comandos del sistema que necesitarás:
 #   groupadd  → crear grupo
@@ -58,7 +58,39 @@ menu_grupos() {
 #   5. Confirmar con msg_ok
 grupo_alta() {
     print_header "Alta de Grupo"
-    msg_warn "TODO: función grupo_alta no implementada aún."
+
+    local grupo
+
+    read -rp "Nombre del nuevo grupo: " grupo
+
+    # Validar vacío
+    if [[ -z "$grupo" ]]; then
+        msg_err "El nombre no puede estar vacío."
+        pausar
+        return
+    fi
+
+    # Verificar si ya existe
+    if grupo_existe "$grupo"; then
+        msg_err "El grupo '$grupo' ya existe."
+        pausar
+        return
+    fi
+
+    # Confirmar acción
+    if ! confirmar_accion "¿Deseas crear el grupo '$grupo'?"; then
+        msg_warn "Operación cancelada."
+        pausar
+        return
+    fi
+
+    # Crear grupo
+    if groupadd "$grupo"; then
+        msg_ok "Grupo '$grupo' creado correctamente."
+    else
+        msg_err "Error al crear el grupo."
+    fi
+
     pausar
 }
 
@@ -74,7 +106,39 @@ grupo_alta() {
 #   Nota: no se puede eliminar un grupo que es el grupo primario de algún usuario
 grupo_baja() {
     print_header "Baja de Grupo"
-    msg_warn "TODO: función grupo_baja no implementada aún."
+
+    local grupo
+
+    read -rp "Nombre del grupo a eliminar: " grupo
+
+    # Validar vacío
+    if [[ -z "$grupo" ]]; then
+        msg_err "El nombre no puede estar vacío."
+        pausar
+        return
+    fi
+
+    # Verificar que exista
+    if ! grupo_existe "$grupo"; then
+        msg_err "El grupo '$grupo' no existe."
+        pausar
+        return
+    fi
+
+    # Confirmar acción
+    if ! confirmar_accion "¿Deseas eliminar el grupo '$grupo'?"; then
+        msg_warn "Operación cancelada."
+        pausar
+        return
+    fi
+
+    # Eliminar grupo
+    if groupdel "$grupo"; then
+        msg_ok "Grupo '$grupo' eliminado correctamente."
+    else
+        msg_err "No se pudo eliminar el grupo."
+    fi
+
     pausar
 }
 
@@ -88,7 +152,45 @@ grupo_baja() {
 #   - Si el grupo está vacío, indicarlo claramente
 grupo_consulta() {
     print_header "Consulta de Grupo"
-    msg_warn "TODO: función grupo_consulta no implementada aún."
+
+    local grupo
+    local info
+    local gid
+    local miembros
+
+    read -rp "Nombre del grupo: " grupo
+
+    # Validar entrada vacía
+    if [[ -z "$grupo" ]]; then
+        msg_err "El nombre no puede estar vacío."
+        pausar
+        return
+    fi
+
+    # Verificar si el grupo existe
+    if ! grupo_existe "$grupo"; then
+        msg_err "El grupo '$grupo' no existe."
+        pausar
+        return
+    fi
+
+    # Obtener información del grupo
+    info=$(getent group "$grupo")
+
+    gid=$(echo "$info" | cut -d: -f3)
+    miembros=$(echo "$info" | cut -d: -f4)
+
+    echo ""
+    echo "Grupo:    $grupo"
+    echo "GID:      $gid"
+
+    if [[ -z "$miembros" ]]; then
+        echo "Miembros: (sin miembros)"
+    else
+        echo "Miembros: $miembros"
+    fi
+
+    echo ""
     pausar
 }
 
@@ -102,7 +204,111 @@ grupo_consulta() {
 #   c) Quitar miembro del grupo   → gpasswd -d <usuario> <grupo>
 #   d) Reemplazar lista completa  → gpasswd -M user1,user2 <grupo>
 grupo_modificar() {
+    local grupo opcion usuario nuevo_nombre lista
+
     print_header "Modificaciones de Grupo"
-    msg_warn "TODO: función grupo_modificar no implementada aún."
-    pausar
+
+    read -rp "Nombre del grupo: " grupo
+
+    # Validaciones
+    if [[ -z "$grupo" ]]; then
+        msg_err "El nombre no puede estar vacío."
+        pausar
+        return
+    fi
+
+    if ! grupo_existe "$grupo"; then
+        msg_err "El grupo '$grupo' no existe."
+        pausar
+        return
+    fi
+
+    while true; do
+        clear
+        print_header "Modificar Grupo: $grupo"
+
+        echo "a) Renombrar grupo"
+        echo "b) Agregar miembro al grupo"
+        echo "c) Quitar miembro del grupo"
+        echo "d) Reemplazar lista completa"
+        echo ""
+        echo "0) Volver"
+        echo ""
+
+        read -rp "Selecciona una opción: " opcion
+
+        case $opcion in
+            a)
+                read -rp "Nuevo nombre: " nuevo_nombre
+
+                if [[ -z "$nuevo_nombre" ]]; then
+                    msg_err "Nombre inválido."
+                elif grupo_existe "$nuevo_nombre"; then
+                    msg_err "El grupo ya existe."
+                else
+                    if groupmod -n "$nuevo_nombre" "$grupo"; then
+                        msg_ok "Grupo renombrado correctamente."
+                        grupo="$nuevo_nombre"
+                    else
+                        msg_err "Error al renombrar grupo."
+                    fi
+                fi
+                pausar
+                ;;
+
+            b)
+                read -rp "Usuario a agregar: " usuario
+
+                if [[ -z "$usuario" ]]; then
+                    msg_err "Usuario inválido."
+                else
+                    if gpasswd -a "$usuario" "$grupo"; then
+                        msg_ok "Usuario agregado correctamente."
+                    else
+                        msg_err "Error al agregar usuario."
+                    fi
+                fi
+                pausar
+                ;;
+
+            c)
+                read -rp "Usuario a quitar: " usuario
+
+                if [[ -z "$usuario" ]]; then
+                    msg_err "Usuario inválido."
+                else
+                    if gpasswd -d "$usuario" "$grupo"; then
+                        msg_ok "Usuario eliminado del grupo."
+                    else
+                        msg_err "Error al quitar usuario."
+                    fi
+                fi
+                pausar
+                ;;
+
+            d)
+                read -rp "Lista de usuarios (user1,user2): " lista
+
+                if [[ -z "$lista" ]]; then
+                    msg_err "Lista inválida."
+                else
+                    if gpasswd -M "$lista" "$grupo"; then
+                        msg_ok "Miembros actualizados."
+                    else
+                        msg_err "Error al actualizar miembros."
+                    fi
+                fi
+                pausar
+                ;;
+
+            0)
+                return
+                ;;
+
+            *)
+                msg_warn "Opción inválida."
+                pausar
+                ;;
+        esac
+    done
 }
