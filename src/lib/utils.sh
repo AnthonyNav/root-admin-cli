@@ -3,7 +3,7 @@
 # src/lib/utils.sh — Helpers compartidos del proyecto
 # Plataforma: AlmaLinux 9  |  Bash 5.0+
 #
-# Autor del módulo: [Nombre] (PR #1 · feat/utils-lib)
+# Autor del módulo: Anthony (PR #1 · feat/utils-lib)
 #
 # NOTA PARA EL EQUIPO:
 #   Este archivo es la RUTA CRÍTICA del proyecto. Los módulos
@@ -84,6 +84,7 @@ confirmar_accion() {
 #       echo "El usuario existe"
 #   fi
 usuario_existe() {
+    [[ -z "$1" ]] && return 1
     id "$1" &>/dev/null
 }
 
@@ -91,7 +92,12 @@ usuario_existe() {
 # Verifica si un grupo existe en el sistema.
 # Retorna 0 si existe, 1 si no.
 grupo_existe() {
-    getent group "$1" &>/dev/null
+    [[ -z "$1" ]] && return 1
+    if getent group "$1" &>/dev/null; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 # ─── pausar ───────────────────────────────────────────────────────────────────
