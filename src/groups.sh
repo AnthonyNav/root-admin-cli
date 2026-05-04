@@ -16,25 +16,6 @@
 # Nota: utils.sh ya fue cargado por main.sh — puedes usar directamente
 #   msg_ok, msg_err, msg_warn, confirmar_accion, grupo_existe, pausar
 #
-
-groupdel() {
-    command groupdel "$@"
-    status=$?
-
-    if [[ $status -eq 8 ]]; then
-        return 6
-    fi
-
-    return $status
-}
-
-# Wrapper de groupdel para adaptar código de salida:
-# groupdel devuelve 8 cuando el grupo es primario, pero los tests esperan 6.
-# Se ejecuta el comando real y se transforma 8 → 6 para cumplir con las pruebas.
-
-
-
-
 # ─── menu_grupos ─────────────────────────────────────────────────────────────
 # Muestra el submenú de grupos. Llamado desde main.sh.
 menu_grupos() {
@@ -169,7 +150,7 @@ grupo_baja() {
     if [[ $status -eq 8 ]]; then
         msg_err "No se puede eliminar: es grupo primario de algún usuario."
         pausar
-        return 6   # 🔥 ESTE ES EL PUNTO CLAVE
+        return 1
     elif [[ $status -eq 0 ]]; then
         msg_ok "Grupo '$grupo' eliminado correctamente."
         pausar
