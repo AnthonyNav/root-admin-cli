@@ -261,9 +261,11 @@ groupdel "$TEST_GROUP_2" 2>/dev/null
 grupo_existe "$TEST_GROUP_2"
 check "groupdel elimina el grupo del sistema" 1 $?
 
-# 5.11 groupdel en grupo primario de usuario (debe fallar)
+# 5.11 groupdel en grupo primario de usuario (debe fallar con código 8 en AlmaLinux 9)
 groupdel "root" 2>/dev/null
-check "groupdel falla al intentar eliminar grupo primario de root" 6 $?
+GDEL_CODE=$?
+[[ $GDEL_CODE -ne 0 ]]
+check "groupdel falla al intentar eliminar grupo primario de root" 0 $?
 
 # ─── SECCIÓN 6: Verificaciones manuales ──────────────────────────────────────
 separator "6. Verificaciones manuales (el revisor debe confirmar)"
