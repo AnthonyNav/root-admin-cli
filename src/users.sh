@@ -49,8 +49,9 @@ if ! declare -F usuario_existe >/dev/null 2>&1; then
     }
 fi
 
-
+# -----------------------------------------------------------------------------
 # Utilidades internas del modulo
+# -----------------------------------------------------------------------------
 asegurar_root() {
     if [[ "$EUID" -ne 0 ]]; then
         msg_err "Esta opcion debe ejecutarse con permisos de root."
@@ -165,8 +166,9 @@ validar_shell() {
     return 0
 }
 
-
+# -----------------------------------------------------------------------------
 # menu_usuarios
+# -----------------------------------------------------------------------------
 menu_usuarios() {
     local opcion
 
@@ -199,8 +201,10 @@ menu_usuarios() {
     done
 }
 
+# -----------------------------------------------------------------------------
 # usuario_alta
 # Crea un usuario usando useradd y asigna contrasena con passwd.
+# -----------------------------------------------------------------------------
 usuario_alta() {
     local usuario
 
@@ -236,14 +240,13 @@ usuario_alta() {
         return 1
     fi
 
-    msg_ok "Usuario '$usuario' creado correctamente."
-    msg_warn "Ahora asigna una contrasena para el usuario '$usuario'."
+    msg_warn "Usuario creado. Ahora asigna una contrasena para '$usuario'."
 
     if passwd "$usuario"; then
-        msg_ok "Contrasena asignada correctamente para '$usuario'."
+        msg_ok "Usuario '$usuario' creado correctamente."
         id "$usuario"
     else
-        msg_err "No se pudo asignar la contrasena al usuario '$usuario'."
+        msg_err "Usuario creado pero fallo al asignar contrasena."
         msg_warn "Se intentara eliminar el usuario para no dejarlo incompleto."
 
         if userdel -r "$usuario" >/dev/null 2>&1; then
@@ -260,10 +263,13 @@ usuario_alta() {
     pausar
 }
 
+# -----------------------------------------------------------------------------
 # usuario_baja
 # Elimina un usuario usando userdel o userdel -r.
+# -----------------------------------------------------------------------------
 usuario_baja() {
     local usuario
+    local eliminar_home="no"
     local err
     local status
 
@@ -302,7 +308,17 @@ usuario_baja() {
         msg_warn "El usuario '$usuario' tiene procesos en ejecucion. userdel puede fallar."
     fi
 
+    if confirmar_accion "Deseas eliminar tambien el directorio home de '$usuario'?"; then
+        eliminar_home="si"
+    fi
+
     msg_warn "Esta accion eliminara el usuario '$usuario'."
+
+    if [[ "$eliminar_home" == "si" ]]; then
+        msg_warn "Tambien se eliminara su directorio home."
+    else
+        msg_warn "No se eliminara su directorio home."
+    fi
 
     if ! confirmar_accion "Confirmas la eliminacion del usuario '$usuario'?"; then
         msg_warn "Operacion cancelada."
@@ -310,7 +326,7 @@ usuario_baja() {
         return 0
     fi
 
-    if confirmar_accion "Deseas eliminar tambien el directorio home de '$usuario'?"; then
+    if [[ "$eliminar_home" == "si" ]]; then
         err=$(userdel -r "$usuario" 2>&1)
         status=$?
 
@@ -337,8 +353,10 @@ usuario_baja() {
     pausar
 }
 
+# -----------------------------------------------------------------------------
 # usuario_consulta
-# Consulta informacion de usuario con id, getent y chage.
+# Consulta informacion de usuario con id, getent, chage y lastlog.
+# -----------------------------------------------------------------------------
 usuario_consulta() {
     local usuario
     local passwd_info
@@ -396,11 +414,17 @@ usuario_consulta() {
     chage -l "$usuario"
     echo ""
 
+    echo "--- Ultimo login ---"
+    lastlog -u "$usuario" 2>/dev/null || echo "(sin informacion de login)"
+    echo ""
+
     pausar
 }
--
+
+# -----------------------------------------------------------------------------
 # usuario_modificar
 # Submenu de modificacion. Las opciones 1-5 cumplen TASKS.md.
+# -----------------------------------------------------------------------------
 usuario_modificar() {
     local usuario
     local opcion
