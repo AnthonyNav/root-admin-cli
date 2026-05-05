@@ -49,12 +49,8 @@ if ! declare -F usuario_existe >/dev/null 2>&1; then
     }
 fi
 
-# Variable global usada para leer contrasenas sin mezclar mensajes con el valor.
-PASSWORD_LEIDA=""
 
-# -----------------------------------------------------------------------------
 # Utilidades internas del modulo
-# -----------------------------------------------------------------------------
 asegurar_root() {
     if [[ "$EUID" -ne 0 ]]; then
         msg_err "Esta opcion debe ejecutarse con permisos de root."
@@ -107,122 +103,6 @@ validar_nombre_usuario() {
     fi
 
     return 0
-}
-
-validar_password_usuario() {
-    local usuario="$1"
-    local password="$2"
-    local password_lower
-    local usuario_lower
-    local palabras_comunes
-    local palabra
-
-    password_lower="${password,,}"
-    usuario_lower="${usuario,,}"
-
-    if [[ -z "$password" ]]; then
-        msg_err "La contrasena no puede estar vacia."
-        return 1
-    fi
-
-    if (( ${#password} < 10 )); then
-        msg_err "La contrasena debe tener al menos 10 caracteres."
-        return 1
-    fi
-
-    if (( ${#password} > 128 )); then
-        msg_err "La contrasena no debe superar 128 caracteres."
-        return 1
-    fi
-
-    if [[ "$password" =~ [[:space:]] ]]; then
-        msg_err "La contrasena no debe contener espacios."
-        return 1
-    fi
-
-    if [[ "$password" == *:* ]]; then
-        msg_err "La contrasena no debe contener dos puntos (:)."
-        return 1
-    fi
-
-    if [[ ! "$password" =~ [[:lower:]] ]]; then
-        msg_err "La contrasena debe incluir al menos una letra minuscula."
-        return 1
-    fi
-
-    if [[ ! "$password" =~ [[:upper:]] ]]; then
-        msg_err "La contrasena debe incluir al menos una letra mayuscula."
-        return 1
-    fi
-
-    if [[ ! "$password" =~ [[:digit:]] ]]; then
-        msg_err "La contrasena debe incluir al menos un numero."
-        return 1
-    fi
-
-    if [[ ! "$password" =~ [[:punct:]] ]]; then
-        msg_err "La contrasena debe incluir al menos un caracter especial."
-        msg_warn "Ejemplos: ! @ # % . _ -"
-        return 1
-    fi
-
-    if [[ "$password_lower" == "$usuario_lower" || "$password_lower" == *"$usuario_lower"* ]]; then
-        msg_err "La contrasena no debe contener el nombre del usuario."
-        return 1
-    fi
-
-    palabras_comunes=(
-        password pass passwd contrasena contraseña admin administrador
-        root user usuario linux zorin qwerty 123456 12345678 123456789
-        prueba test perro gato redes sistema sistema123 welcome changeme
-    )
-
-    for palabra in "${palabras_comunes[@]}"; do
-        if [[ "$password_lower" == *"$palabra"* ]]; then
-            msg_err "La contrasena contiene una palabra demasiado comun: '$palabra'."
-            return 1
-        fi
-    done
-
-    return 0
-}
-
-leer_password_valida() {
-    local usuario="$1"
-    local password
-    local password_confirm
-    local intento
-
-    PASSWORD_LEIDA=""
-
-    for intento in 1 2 3; do
-        echo ""
-        msg_warn "La contrasena debe tener minimo 10 caracteres, mayuscula, minuscula, numero y simbolo."
-
-        printf " Contrasena para '%s': " "$usuario"
-        IFS= read -rs password
-        printf "\n"
-
-        printf " Confirma la contrasena: "
-        IFS= read -rs password_confirm
-        printf "\n"
-
-        if [[ "$password" != "$password_confirm" ]]; then
-            msg_err "Las contrasenas no coinciden."
-            msg_warn "Intento $intento de 3 fallido."
-            continue
-        fi
-
-        if validar_password_usuario "$usuario" "$password"; then
-            PASSWORD_LEIDA="$password"
-            return 0
-        fi
-
-        msg_warn "Intento $intento de 3 fallido."
-    done
-
-    PASSWORD_LEIDA=""
-    return 1
 }
 
 uid_de_usuario() {
@@ -285,9 +165,8 @@ validar_shell() {
     return 0
 }
 
-# -----------------------------------------------------------------------------
-# Menu principal del modulo de usuarios
-# -----------------------------------------------------------------------------
+
+# menu_usuarios
 menu_usuarios() {
     local opcion
 
@@ -320,19 +199,17 @@ menu_usuarios() {
     done
 }
 
-# -----------------------------------------------------------------------------
-# Alta de usuario
-# -----------------------------------------------------------------------------
+# usuario_alta
+# Crea un usuario usando useradd y asigna contrasena con passwd.
 usuario_alta() {
     local usuario
-    local password
 
     clear
     print_header "Alta de Usuario"
 
     asegurar_root || { pausar; return 1; }
     comando_requerido useradd || { pausar; return 1; }
-    comando_requerido chpasswd || { pausar; return 1; }
+    comando_requerido passwd || { pausar; return 1; }
 
     read -rp " Nombre del nuevo usuario: " usuario
 
@@ -347,15 +224,6 @@ usuario_alta() {
         return 1
     fi
 
-    if ! leer_password_valida "$usuario"; then
-        msg_err "No se pudo establecer una contrasena valida."
-        pausar
-        return 1
-    fi
-
-    password="$PASSWORD_LEIDA"
-
-    echo ""
     if ! confirmar_accion "Deseas crear el usuario '$usuario'?"; then
         msg_warn "Operacion cancelada."
         pausar
@@ -368,11 +236,14 @@ usuario_alta() {
         return 1
     fi
 
-    if printf '%s:%s\n' "$usuario" "$password" | chpasswd; then
-        msg_ok "Usuario '$usuario' creado correctamente."
+    msg_ok "Usuario '$usuario' creado correctamente."
+    msg_warn "Ahora asigna una contrasena para el usuario '$usuario'."
+
+    if passwd "$usuario"; then
+        msg_ok "Contrasena asignada correctamente para '$usuario'."
         id "$usuario"
     else
-        msg_err "El usuario fue creado, pero la contrasena fue rechazada por la politica del sistema."
+        msg_err "No se pudo asignar la contrasena al usuario '$usuario'."
         msg_warn "Se intentara eliminar el usuario para no dejarlo incompleto."
 
         if userdel -r "$usuario" >/dev/null 2>&1; then
@@ -386,16 +257,15 @@ usuario_alta() {
         return 1
     fi
 
-    PASSWORD_LEIDA=""
     pausar
 }
 
-# -----------------------------------------------------------------------------
-# Baja de usuario
-# -----------------------------------------------------------------------------
+# usuario_baja
+# Elimina un usuario usando userdel o userdel -r.
 usuario_baja() {
     local usuario
-    local eliminar_home
+    local err
+    local status
 
     clear
     print_header "Baja de Usuario"
@@ -432,40 +302,43 @@ usuario_baja() {
         msg_warn "El usuario '$usuario' tiene procesos en ejecucion. userdel puede fallar."
     fi
 
-    read -rp " Eliminar tambien su directorio home? [s/N]: " eliminar_home
-    echo ""
     msg_warn "Esta accion eliminara el usuario '$usuario'."
 
-    if ! confirmar_accion "Confirmas la eliminacion?"; then
+    if ! confirmar_accion "Confirmas la eliminacion del usuario '$usuario'?"; then
         msg_warn "Operacion cancelada."
         pausar
         return 0
     fi
 
-    if [[ "$eliminar_home" =~ ^[sS]$ ]]; then
-        if userdel -r "$usuario"; then
-            msg_ok "Usuario '$usuario' eliminado junto con su home."
-        else
-            msg_err "No se pudo eliminar el usuario '$usuario' con su home."
+    if confirmar_accion "Deseas eliminar tambien el directorio home de '$usuario'?"; then
+        err=$(userdel -r "$usuario" 2>&1)
+        status=$?
+
+        if [[ $status -ne 0 ]]; then
+            msg_err "No se pudo eliminar el usuario: $err"
             pausar
             return 1
         fi
+
+        msg_ok "Usuario '$usuario' eliminado junto con su home."
     else
-        if userdel "$usuario"; then
-            msg_ok "Usuario '$usuario' eliminado sin borrar su home."
-        else
-            msg_err "No se pudo eliminar el usuario '$usuario'."
+        err=$(userdel "$usuario" 2>&1)
+        status=$?
+
+        if [[ $status -ne 0 ]]; then
+            msg_err "No se pudo eliminar el usuario: $err"
             pausar
             return 1
         fi
+
+        msg_ok "Usuario '$usuario' eliminado sin borrar su home."
     fi
 
     pausar
 }
 
-# -----------------------------------------------------------------------------
-# Consulta de usuario
-# -----------------------------------------------------------------------------
+# usuario_consulta
+# Consulta informacion de usuario con id, getent y chage.
 usuario_consulta() {
     local usuario
     local passwd_info
@@ -477,8 +350,9 @@ usuario_consulta() {
     clear
     print_header "Consulta de Usuario"
 
-    comando_requerido getent || { pausar; return 1; }
     comando_requerido id || { pausar; return 1; }
+    comando_requerido getent || { pausar; return 1; }
+    comando_requerido chage || { pausar; return 1; }
 
     read -rp " Nombre del usuario a consultar: " usuario
 
@@ -518,34 +392,18 @@ usuario_consulta() {
     echo "$passwd_info"
     echo ""
 
-    if command -v passwd >/dev/null 2>&1; then
-        echo "Estado de contrasena:"
-        passwd -S "$usuario" 2>/dev/null || true
-        echo ""
-    fi
-
-    if command -v chage >/dev/null 2>&1; then
-        echo "Informacion de caducidad de contrasena:"
-        chage -l "$usuario" 2>/dev/null || msg_warn "No se pudo leer chage para '$usuario'."
-        echo ""
-    fi
-
-    if command -v lastlog >/dev/null 2>&1; then
-        echo "Ultimo inicio de sesion:"
-        lastlog -u "$usuario" 2>/dev/null || true
-        echo ""
-    fi
+    echo "Informacion de caducidad de contrasena:"
+    chage -l "$usuario"
+    echo ""
 
     pausar
 }
-
-# -----------------------------------------------------------------------------
-# Modificacion de usuario
-# -----------------------------------------------------------------------------
+-
+# usuario_modificar
+# Submenu de modificacion. Las opciones 1-5 cumplen TASKS.md.
 usuario_modificar() {
     local usuario
     local opcion
-    local password
     local nueva_shell
     local nuevo_home
     local comentario
@@ -580,13 +438,13 @@ usuario_modificar() {
         clear
         print_header "Modificar Usuario: $usuario"
 
-        echo " 1) Cambiar contrasena"
-        echo " 2) Cambiar shell"
-        echo " 3) Cambiar directorio home"
-        echo " 4) Cambiar comentario / nombre completo"
-        echo " 5) Bloquear cuenta"
-        echo " 6) Desbloquear cuenta"
-        echo " 7) Cambiar fecha de caducidad de cuenta"
+        echo " 1) Cambiar fecha de caducidad de cuenta"
+        echo " 2) Cambiar directorio home"
+        echo " 3) Bloquear cuenta"
+        echo " 4) Desbloquear cuenta"
+        echo " 5) Cambiar shell"
+        echo " 6) Cambiar contrasena"
+        echo " 7) Cambiar comentario / nombre completo"
         echo " 8) Forzar cambio de contrasena en el proximo inicio"
         echo ""
         echo " 0) Volver al menu de usuarios"
@@ -597,47 +455,23 @@ usuario_modificar() {
 
         case "$opcion" in
             1)
-                comando_requerido chpasswd || { pausar; continue; }
+                comando_requerido chage || { pausar; continue; }
 
-                if ! leer_password_valida "$usuario"; then
-                    msg_err "No se pudo establecer una contrasena valida."
-                    pausar
-                    continue
-                fi
+                read -rp " Nueva fecha de caducidad YYYY-MM-DD, o -1 para quitar caducidad: " fecha
 
-                password="$PASSWORD_LEIDA"
-
-                if printf '%s:%s\n' "$usuario" "$password" | chpasswd; then
-                    msg_ok "Contrasena actualizada para '$usuario'."
-                else
-                    msg_err "La contrasena fue rechazada por la politica del sistema."
-                fi
-
-                PASSWORD_LEIDA=""
-                pausar
-                ;;
-
-            2)
-                echo "Shells comunes:"
-                echo " /bin/bash"
-                echo " /bin/sh"
-                echo " /usr/sbin/nologin"
-                echo ""
-
-                read -rp " Nueva shell: " nueva_shell
-
-                if validar_shell "$nueva_shell"; then
-                    if usermod -s "$nueva_shell" "$usuario"; then
-                        msg_ok "Shell de '$usuario' cambiada a '$nueva_shell'."
+                if validar_fecha_caducidad "$fecha"; then
+                    if chage -E "$fecha" "$usuario"; then
+                        msg_ok "Fecha de caducidad actualizada para '$usuario'."
+                        chage -l "$usuario" 2>/dev/null || true
                     else
-                        msg_err "No se pudo cambiar la shell."
+                        msg_err "No se pudo actualizar la fecha de caducidad."
                     fi
                 fi
 
                 pausar
                 ;;
 
-            3)
+            2)
                 read -rp " Nuevo directorio home, ejemplo /home/$usuario: " nuevo_home
 
                 if [[ -z "$nuevo_home" ]]; then
@@ -665,23 +499,7 @@ usuario_modificar() {
                 pausar
                 ;;
 
-            4)
-                read -rp " Nuevo comentario / nombre completo: " comentario
-
-                if [[ "$comentario" == *:* ]]; then
-                    msg_err "El comentario no debe contener dos puntos (:)."
-                elif [[ "$comentario" == *$'\n'* ]]; then
-                    msg_err "El comentario no debe contener saltos de linea."
-                elif usermod -c "$comentario" "$usuario"; then
-                    msg_ok "Comentario actualizado para '$usuario'."
-                else
-                    msg_err "No se pudo actualizar el comentario."
-                fi
-
-                pausar
-                ;;
-
-            5)
+            3)
                 if confirmar_accion "Deseas bloquear la cuenta '$usuario'?"; then
                     if usermod -L "$usuario"; then
                         msg_ok "Cuenta '$usuario' bloqueada."
@@ -695,7 +513,7 @@ usuario_modificar() {
                 pausar
                 ;;
 
-            6)
+            4)
                 if confirmar_accion "Deseas desbloquear la cuenta '$usuario'?"; then
                     if usermod -U "$usuario"; then
                         msg_ok "Cuenta '$usuario' desbloqueada."
@@ -709,18 +527,49 @@ usuario_modificar() {
                 pausar
                 ;;
 
-            7)
-                comando_requerido chage || { pausar; continue; }
+            5)
+                echo "Shells comunes:"
+                echo " /bin/bash"
+                echo " /bin/sh"
+                echo " /usr/sbin/nologin"
+                echo ""
 
-                read -rp " Nueva fecha de caducidad YYYY-MM-DD, o -1 para quitar caducidad: " fecha
+                read -rp " Nueva shell: " nueva_shell
 
-                if validar_fecha_caducidad "$fecha"; then
-                    if chage -E "$fecha" "$usuario"; then
-                        msg_ok "Fecha de caducidad actualizada para '$usuario'."
-                        chage -l "$usuario" 2>/dev/null || true
+                if validar_shell "$nueva_shell"; then
+                    if usermod -s "$nueva_shell" "$usuario"; then
+                        msg_ok "Shell de '$usuario' cambiada a '$nueva_shell'."
                     else
-                        msg_err "No se pudo actualizar la fecha de caducidad."
+                        msg_err "No se pudo cambiar la shell."
                     fi
+                fi
+
+                pausar
+                ;;
+
+            6)
+                comando_requerido passwd || { pausar; continue; }
+
+                if passwd "$usuario"; then
+                    msg_ok "Contrasena actualizada para '$usuario'."
+                else
+                    msg_err "No se pudo actualizar la contrasena."
+                fi
+
+                pausar
+                ;;
+
+            7)
+                read -rp " Nuevo comentario / nombre completo: " comentario
+
+                if [[ "$comentario" == *:* ]]; then
+                    msg_err "El comentario no debe contener dos puntos (:)."
+                elif [[ "$comentario" == *$'\n'* ]]; then
+                    msg_err "El comentario no debe contener saltos de linea."
+                elif usermod -c "$comentario" "$usuario"; then
+                    msg_ok "Comentario actualizado para '$usuario'."
+                else
+                    msg_err "No se pudo actualizar el comentario."
                 fi
 
                 pausar
