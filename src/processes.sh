@@ -36,21 +36,28 @@ procesos_snapshot() {
     read -rp "  Ingresa el nombre de usuario a consultar: " usuario
     echo ""
 
-    # 1. Verificar que el usuario existe (usando el helper recomendado)
-    if ! id "$usuario" &>/dev/null; then
-        msg_err "El usuario '$usuario' no existe en el sistema."
+    # 1. Validar nombre vacío
+    if [[ -z "$usuario" ]]; then
+        msg_err "El nombre no puede estar vacío."
         pausar
-        return 1
+        return
     fi
 
-    # 2. Obtener el total de procesos para informar al admin
+    # 2. Verificar existencia con el helper del proyecto
+    if ! usuario_existe "$usuario"; then
+        msg_err "El usuario '$usuario' no existe en el sistema."
+        pausar
+        return
+    fi
+
+    # 3. Obtener total de procesos
     local total
     total=$(ps -u "$usuario" --no-headers | wc -l)
 
-    if [ "$total" -eq 0 ]; then
-        msg_warn "El usuario '$usuario' no tiene procesos activos."
+    if [[ "$total" -eq 0 ]]; then
+        # Texto exacto según TASKS.md
+        msg_warn "No hay procesos activos para '$usuario'."
     else
-        # 3. Ejecutar comando requerido en PLANNING.md
         ps aux --user "$usuario"
         echo ""
         msg_ok "Se encontraron $total procesos para '$usuario'."
@@ -67,15 +74,25 @@ procesos_monitor() {
     read -rp "  Ingresa el usuario para monitorear: " usuario
     echo ""
 
-    # Validar existencia
-    if ! id "$usuario" &>/dev/null; then
-        msg_err "El usuario '$usuario' no existe."
+    # 1. Validar vacío
+    if [[ -z "$usuario" ]]; then
+        msg_err "El nombre no puede estar vacío."
         pausar
-        return 1
+        return
     fi
 
-    # 4. Advertencia y ejecución de top
-    msg_warn "Iniciando monitor. Presiona 'q' para salir y regresar al menú."
-    sleep 2
+    # 2. Verificar existencia con helper
+    if ! usuario_existe "$usuario"; then
+        msg_err "El usuario '$usuario' no existe."
+        pausar
+        return
+    fi
+
+    # 3. Aviso exacto según TASKS.md (sin sleep)
+    msg_ok "Presiona 'q' para salir del monitor."
+    
     top -u "$usuario"
+
+    # 4. Pausar al regresar de top
+    pausar
 }
