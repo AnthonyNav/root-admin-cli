@@ -89,7 +89,7 @@ procesos_monitor() {
     fi
 
     # 3. Aviso exacto según TASKS.md (sin sleep)
-    msg_ok "Presiona 'q' para salir del monitor."
+    msg_warn "Presiona 'q' para salir del monitor."
     
     top -u "$usuario"
 
