@@ -3,22 +3,12 @@
 # src/processes.sh — Módulo de visualización de procesos por usuario
 # Plataforma: AlmaLinux 9  |  Bash 5.0+
 #
-# Autor del módulo: [Nombre] (PR #5 · feat/processes-module)
-#
-# Comandos del sistema que necesitarás:
-#   ps     → listar procesos  (ps aux --user <usuario>  o  ps -u <usuario>)
-#   top    → monitor en vivo  (top -u <usuario>  — presionar q para salir)
-#   pgrep  → buscar por nombre (opcional, para enriquecer la salida)
-#
-# Nota: utils.sh ya fue cargado por main.sh — puedes usar directamente
-#   msg_ok, msg_err, msg_warn, confirmar_accion, usuario_existe, pausar
+# Autor del modulo: Osvaldo  (PR #5 · feat/processes-module)
 #
 
-# ─── menu_procesos ────────────────────────────────────────────────────────────
-# Muestra el submenú de procesos. Llamado desde main.sh.
+# menu_procesos 
 menu_procesos() {
     local opcion
-
     while true; do
         clear
         print_header "Procesos por Usuario"
@@ -28,7 +18,6 @@ menu_procesos() {
         echo "  0) Volver al menú principal"
         echo ""
         read -rp "  Selecciona una opción: " opcion
-        echo ""
 
         case $opcion in
             1) procesos_snapshot ;;
@@ -39,34 +28,54 @@ menu_procesos() {
     done
 }
 
-# ─── procesos_snapshot ───────────────────────────────────────────────────────
-# Muestra una foto instantánea de los procesos de un usuario específico.
-# TODO: implementar
-#
-# Flujo sugerido:
-#   1. Solicitar nombre de usuario
-#   2. Verificar que SÍ existe (usar usuario_existe)
-#   3. Verificar que el usuario tiene procesos activos
-#   4. Ejecutar: ps aux --user <usuario>
-#   5. Mostrar número de procesos encontrados
-#   6. Si no hay procesos, indicarlo claramente con msg_warn
+# procesos_snapshot 
 procesos_snapshot() {
+    local usuario
     print_header "Procesos del Usuario (snapshot)"
-    msg_warn "TODO: función procesos_snapshot no implementada aún."
+    
+    read -rp "  Ingresa el nombre de usuario a consultar: " usuario
+    echo ""
+
+    # 1. Verificar que el usuario existe (usando el helper recomendado)
+    if ! id "$usuario" &>/dev/null; then
+        msg_err "El usuario '$usuario' no existe en el sistema."
+        pausar
+        return 1
+    fi
+
+    # 2. Obtener el total de procesos para informar al admin
+    local total
+    total=$(ps -u "$usuario" --no-headers | wc -l)
+
+    if [ "$total" -eq 0 ]; then
+        msg_warn "El usuario '$usuario' no tiene procesos activos."
+    else
+        # 3. Ejecutar comando requerido en PLANNING.md
+        ps aux --user "$usuario"
+        echo ""
+        msg_ok "Se encontraron $total procesos para '$usuario'."
+    fi
+
     pausar
 }
 
-# ─── procesos_monitor ────────────────────────────────────────────────────────
-# Abre top filtrado por usuario para monitoreo en tiempo real.
-# TODO: implementar
-#
-# Flujo sugerido:
-#   1. Solicitar nombre de usuario
-#   2. Verificar que SÍ existe (usar usuario_existe)
-#   3. Advertir al usuario que presione 'q' para salir de top
-#   4. Ejecutar: top -u <usuario>
+# procesos_monitor 
 procesos_monitor() {
+    local usuario
     print_header "Monitor en Tiempo Real"
-    msg_warn "TODO: función procesos_monitor no implementada aún."
-    pausar
+    
+    read -rp "  Ingresa el usuario para monitorear: " usuario
+    echo ""
+
+    # Validar existencia
+    if ! id "$usuario" &>/dev/null; then
+        msg_err "El usuario '$usuario' no existe."
+        pausar
+        return 1
+    fi
+
+    # 4. Advertencia y ejecución de top
+    msg_warn "Iniciando monitor. Presiona 'q' para salir y regresar al menú."
+    sleep 2
+    top -u "$usuario"
 }
