@@ -2,15 +2,15 @@
 
 ## Asignaciones
 
-| PR  | Rama feature              | Archivo             | Responsable   | Prioridad |
-|-----|---------------------------|---------------------|---------------|-----------|
-| #1  | `feat/utils-lib`          | `src/lib/utils.sh`  | [Nombre]      | ALTA      |
-| #2  | `feat/core-entrypoint`    | `main.sh`           | [Lead/Anthony]| ALTA      |
-| #3  | `feat/users-module`       | `src/users.sh`      | [Nombre]      | NORMAL    |
-| #4  | `feat/groups-module`      | `src/groups.sh`     | [Nombre]      | NORMAL    |
-| #5  | `feat/processes-module`   | `src/processes.sh`  | [Nombre]      | NORMAL    |
+| PR  | Rama feature              | Archivo             | Responsable | Prioridad |
+|-----|---------------------------|---------------------|-------------|-----------|
+| #1  | `feat/utils-lib`          | `src/lib/utils.sh`  | Antonio     | ALTA      |
+| #2  | `feat/core-entrypoint`    | `main.sh`           | Axel        | ALTA      |
+| #3  | `feat/users-module`       | `src/users.sh`      | Diego       | NORMAL    |
+| #4  | `feat/groups-module`      | `src/groups.sh`     | Imanol      | NORMAL    |
+| #5  | `feat/processes-module`   | `src/processes.sh`  | Osvaldo     | NORMAL    |
 
-> Llenar la columna "Responsable" con el nombre real del miembro asignado.
+Para el detalle completo de qué implementar en cada PR (funciones, casos a manejar y cómo probarlo) → [`docs/TASKS.md`](TASKS.md)
 
 ---
 
