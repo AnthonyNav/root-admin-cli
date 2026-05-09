@@ -1,96 +1,176 @@
-# Planeación del Proyecto — Admin de Redes Parte 1
+# Planeación del Proyecto — Admin de Redes Parte 2
 
-## Descripción
+## Estado del proyecto
 
-Script interactivo en Bash que permite a un administrador de sistemas gestionar usuarios, grupos y visualizar procesos desde un menú de texto, verificando previamente que quien lo ejecuta tiene privilegios de root.
+### Parte 1 — Completada ✓
 
-## Funcionalidades del script
+| Módulo | Archivo | Responsable | Estado |
+|--------|---------|-------------|--------|
+| Helpers compartidos | `src/lib/utils.sh` | Anthony | ✓ Mergeado |
+| Gestión de usuarios | `src/users.sh` | Diego | ✓ Mergeado |
+| Gestión de grupos | `src/groups.sh` | Imanol | ✓ Mergeado |
+| Gestión de procesos | `src/processes.sh` | Osvaldo | ✓ Mergeado |
+| Core / entrypoint | `main.sh` | Axel | ✓ Mergeado |
 
-### Verificación de acceso
-- Si el proceso se ejecuta como root → muestra el menú principal.
-- Si NO es root → imprime `Acceso denegado` y termina con código de salida 1.
+### Parte 2 — En desarrollo
 
-### Menú 1 — Usuarios
-| Opción         | Comando(s) Linux                          |
-|----------------|-------------------------------------------|
-| Alta           | `useradd`, `passwd` / `chpasswd`          |
-| Baja           | `userdel` / `userdel -r`                  |
-| Consulta       | `id`, `getent passwd`, `chage -l`         |
-| Modificaciones | `usermod`, `chage`, `passwd`              |
+Agrega 3 nuevas opciones al menú principal y corrige observaciones de la primera revisión.
 
-Modificaciones incluye: fecha de caducidad, directorio home, estado de cuenta (lock/unlock), shell.
+---
 
-### Menú 2 — Grupos
-| Opción         | Comando(s) Linux                          |
-|----------------|-------------------------------------------|
-| Alta           | `groupadd`                                |
-| Baja           | `groupdel`                                |
-| Consulta       | `getent group`                            |
-| Modificaciones | `groupmod`, `gpasswd`                     |
+## Correcciones de Parte 1 (PC-1)
 
-Modificaciones incluye: renombrar grupo, agregar/quitar miembros.
+Observaciones recibidas en la primera revisión del proyecto:
 
-### Menú 3 — Procesos del usuario consultado
-| Vista         | Comando                                   |
-|---------------|-------------------------------------------|
-| Snapshot      | `ps aux --user <usuario>`                 |
-| Tiempo real   | `top -u <usuario>`                        |
+1. **Listar usuarios/grupos antes de operar** — en baja, consulta y modificación de usuarios y grupos, el operador debe ver la lista de recursos disponibles en lugar de escribir el nombre a ciegas.
+2. **Opción Root en procesos** — agregar opción 3 en el submenú de procesos que muestre directamente los procesos de root sin solicitar nombre.
+3. **Diseño profesional** — mejorar la apariencia visual del script usando herramientas TUI disponibles en AlmaLinux 9.
+
+**Solución de diseño adoptada: `whiptail`**
+
+`whiptail` viene preinstalada en AlmaLinux 9 como parte del paquete `newt`. No requiere instalación adicional ni agregar dependencias al proyecto. Permite:
+
+- `--menu` → listas seleccionables de usuarios y grupos
+- `--inputbox` → campos de entrada con ventana visual
+- `--yesno` → confirmaciones con botones Sí/No
+- `--msgbox` → mensajes con ventana
+
+Todas las correcciones van en un solo PR asignado a Axel.
+
+---
+
+## Parte 2 — Nuevas funcionalidades
+
+### Opción 4 — Automatización de tareas
+
+| Sub-opción | Herramienta | Descripción |
+|------------|-------------|-------------|
+| 1) Cron | `crontab` | Programar tarea recurrente (diaria, semanal, etc.) |
+| 2) At | `at` | Programar tarea puntual en fecha/hora específica |
+
+El módulo pide al usuario la tarea a ejecutar y la fecha/hora de ejecución.
+
+### Opción 5 — Respaldo de información
+
+| Sub-opción | Herramienta | Descripción |
+|------------|-------------|-------------|
+| 1) Tar-gzip | `tar -czf` | Comprimir carpeta con gzip (.tar.gz) |
+| 2) Tar-bzip2 | `tar -cjf` | Comprimir carpeta con bzip2 (.tar.bz2) |
+
+El módulo pide la carpeta origen y la ruta de destino del respaldo.
+
+### Opción 6 — Seguridad / Monitoreo
+
+| Sub-opción | Herramienta | Modo |
+|------------|-------------|------|
+| a) Nagios | `nagios` + `httpd` | Abre el dashboard en el navegador |
+| b) Wireshark | `wireshark` | Lanza la interfaz gráfica |
+| c) Nmap / iftop | `nmap` / `iftop` | Ejecuta en la misma terminal |
 
 ---
 
 ## Decisiones técnicas
 
-### Plataforma: AlmaLinux 9
+### Instalación de herramientas de seguridad
 
-El proyecto utiliza exclusivamente **AlmaLinux 9** por las siguientes razones:
+Las herramientas del módulo de seguridad (Nagios, Wireshark, Nmap, iftop) requieren instalación previa en cada máquina. La docente advirtió sobre problemas de compatibilidad con instalaciones desde código fuente en AlmaLinux 9.
 
-1. **Alineación con los materiales de clase.** La asignatura utilizará herramientas como Nagios, Cacti y OpenManage. Los materiales del profesor, rutas de instalación y comandos de configuración están basados en RHEL/AlmaLinux. Seguir la misma distribución evita divergencias en los laboratorios.
+**Solución adoptada:** instalación vía repositorio EPEL, que resuelve automáticamente los plugins y dependencias sin necesidad de compilar desde fuente ni cambiar la versión del sistema operativo.
 
-2. **Soporte nativo de Dell OpenManage (OMSA).** OpenManage Server Administrator tiene soporte oficial y paquetes RPM mantenidos por Dell para RHEL 8/9 y sus clones (AlmaLinux, Rocky). En distribuciones Debian/Ubuntu, la instalación requiere repositorios no oficiales y pasos adicionales de configuración.
+```bash
+# Los pasos clave del script de instalación
+dnf config-manager --set-enabled crb
+dnf install -y epel-release
+setenforce 0  # SELinux permissive (requerido por Nagios)
+dnf install -y nagios nagios-common nagios-plugins-all nrpe wireshark-qt nmap iftop
+```
 
-3. **Entorno empresarial RHEL-compatible.** AlmaLinux 9 es un clon binario de RHEL 9, el estándar de facto en entornos corporativos de administración de servidores Linux.
+**Versión del sistema:** AlmaLinux 9.7 — no se requiere downgrade.
 
-4. **Nota sobre Cacti y Nagios.** Para ser exactos: tanto Cacti como Nagios Core funcionan en Debian/Ubuntu sin diferencias significativas. El argumento real para usar AlmaLinux en este caso es la coherencia con el entorno de clase, no una incompatibilidad técnica.
+Osvaldo crea `scripts/install_security.sh` que el equipo completo ejecuta antes de hacer la demo. Este script va en su mismo PR de automatización.
 
-### Bash en lugar de Python u otro lenguaje
+### whiptail como capa de diseño
 
-El script utiliza comandos del sistema (`useradd`, `groupmod`, `chage`, etc.) directamente sin capas de abstracción. Bash es el lenguaje natural para este tipo de administración de sistemas y no requiere instalar intérpretes adicionales.
+Las funciones de whiptail se agregan a `src/lib/utils.sh` como helpers nuevos. Las funciones existentes (`msg_ok`, `msg_err`, etc.) se mantienen sin cambios para no romper compatibilidad con los módulos de Parte 2 que se desarrollan en paralelo.
 
----
+### Módulos nuevos son completamente independientes
 
-## Dependencias del sistema
-
-Declaradas en `deps.txt`. Todos los paquetes están preinstalados en una instalación mínima de AlmaLinux 9.
-
-| Paquete        | Comandos que provee                                    |
-|----------------|--------------------------------------------------------|
-| `shadow-utils` | `useradd`, `userdel`, `usermod`, `groupadd`, `groupdel`, `chage`, `passwd` |
-| `procps-ng`    | `ps`, `top`                                            |
-| `coreutils`    | `id`, `cut`, `sort`, `grep`                            |
-| `util-linux`   | `getopt`, utilidades generales                         |
-| `glibc-common` | `getent`                                               |
-
-Verificar con: `bash setup.sh`
+`automation.sh`, `backup.sh` y `security.sh` son archivos nuevos que no tocan nada de Parte 1. Solo `main.sh` los integra al final (PR de Anthony). Esto garantiza trabajo en paralelo sin bloqueos.
 
 ---
 
-## Supuestos técnicos
+## Estructura final del repositorio
 
-- El script siempre se ejecuta en una sesión de terminal interactiva.
-- El sistema tiene `bash` en `/usr/bin/env bash` (AlmaLinux 9: `/bin/bash`, enlazado).
-- SELinux puede estar en modo `enforcing` en AlmaLinux 9. Si se presentan problemas de permisos con comandos de administración, verificar con `getenforce`.
-- No se asume que existe un entorno gráfico ni `sudo` configurado; se documenta uso directo como root.
+```
+admin-redes/
+├── README.md
+├── main.sh                      ← P2-INT Anthony · opciones 4/5/6 + whiptail menú
+├── setup.sh
+├── deps.txt                     ← actualizar con nuevas dependencias
+├── src/
+│   ├── lib/
+│   │   └── utils.sh             ← PC-1 Axel · nuevas funciones whiptail
+│   ├── users.sh                 ← PC-1 Axel · listar usuarios + whiptail
+│   ├── groups.sh                ← PC-1 Axel · listar grupos + whiptail
+│   ├── processes.sh             ← PC-1 Axel · opción 3 Root
+│   ├── automation.sh            ← P2-1 Osvaldo · NUEVO
+│   ├── backup.sh                ← P2-2 Imanol · NUEVO
+│   └── security.sh              ← P2-3 Diego · NUEVO
+├── scripts/
+│   └── install_security.sh      ← P2-1 Osvaldo · NUEVO
+├── tests/
+│   ├── test_utils.sh
+│   ├── test_groups.sh
+│   ├── test_processes.sh
+│   └── test_users.sh
+└── docs/
+    ├── PLANNING.md              ← Parte 1
+    ├── PLANNING_P2.md           ← estás aquí
+    ├── RESPONSIBILITIES.md      ← Parte 1
+    ├── RESPONSIBILITIES_P2.md
+    ├── TASKS.md                 ← Parte 1
+    ├── TASKS_P2.md
+    ├── COLLABORATION_RULES.md
+    └── MANUAL_TESTS.md
+```
 
 ---
 
-## Estructura de módulos
+## Dependencias entre PRs
 
-| Módulo             | Archivo             | PR   | Depende de     |
-|--------------------|---------------------|------|----------------|
-| Helpers compartidos| `src/lib/utils.sh`  | #1   | ninguno        |
-| Entrypoint / core  | `main.sh`           | #2   | todos los demás|
-| Gestión usuarios   | `src/users.sh`      | #3   | #1 utils       |
-| Gestión grupos     | `src/groups.sh`     | #4   | #1 utils       |
-| Procesos           | `src/processes.sh`  | #5   | #1 utils       |
+```
+PC-1 (Axel correcciones)     → merge primero (día 3)
+                               Modifica utils.sh — los nuevos módulos
+                               pueden usar sus helpers una vez mergeado.
 
-Ver orden de merge en `docs/RESPONSIBILITIES.md`.
+P2-1 (Osvaldo automatización) → paralelo, sin dependencias
+P2-2 (Imanol respaldo)        → paralelo, sin dependencias
+P2-3 (Diego seguridad)        → paralelo, requiere install_security.sh
+                               de Osvaldo ejecutado en la máquina
+
+P2-INT (Anthony integración)  → merge último (día 5)
+                               Sourcéa los 3 nuevos módulos en main.sh
+                               y agrega las opciones 4/5/6 al menú.
+```
+
+**Nota para Diego:** el módulo de seguridad asume que `scripts/install_security.sh`
+de Osvaldo ya se ejecutó en la máquina. Si una herramienta no está instalada,
+el módulo muestra `msg_err` con instrucción de correr el script.
+
+---
+
+## Nuevas dependencias del sistema
+
+A agregar en `deps.txt`:
+
+| Paquete | Proveedor | Necesario para |
+|---------|-----------|----------------|
+| `at` | base | Automatización puntual |
+| `cronie` | base | Cron (puede ya estar) |
+| `tar` | base | Respaldos |
+| `nagios` | EPEL | Monitoreo |
+| `nagios-plugins-all` | EPEL | Monitoreo |
+| `nrpe` | EPEL | Monitoreo |
+| `wireshark-qt` | base | Captura de tráfico |
+| `nmap` | base | Escaneo de red |
+| `iftop` | EPEL | Monitor de tráfico en tiempo real |
