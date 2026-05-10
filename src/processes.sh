@@ -3,37 +3,38 @@
 # src/processes.sh — Módulo de visualización de procesos por usuario
 # Plataforma: AlmaLinux 9  |  Bash 5.0+
 #
-# Autor del modulo: Osvaldo  (PR #5 · feat/processes-module)
+# Autor del modulo: Osvaldo  (PR #5 · feat/part1-corrections)
 #
 
 # menu_procesos 
 menu_procesos() {
     local opcion
     while true; do
-        clear
-        print_header "Procesos por Usuario"
-        echo "  1) Ver procesos del usuario (snapshot)"
-        echo "  2) Monitor en tiempo real (top)"
-        echo ""
-        echo "  0) Volver al menú principal"
-        echo ""
-        read -rp "  Selecciona una opción: " opcion
+        opcion=$(whiptail --title "Procesos por Usuario" \
+            --menu "Selecciona una opción:" 14 60 4 \
+            "1" "Ver procesos del usuario (snapshot)" \
+            "2" "Monitor en tiempo real (top)" \
+            "3" "Ver procesos de root" \
+            "0" "Volver al menú principal" \
+            3>&1 1>&2 2>&3)
 
-        case $opcion in
+        [[ -z "$opcion" || "$opcion" == "0" ]] && return
+
+        case "$opcion" in
             1) procesos_snapshot ;;
             2) procesos_monitor  ;;
-            0) return            ;;
+            3) procesos_root     ;;
             *) msg_warn "Opción inválida."; pausar ;;
         esac
     done
 }
-
 # procesos_snapshot 
 procesos_snapshot() {
     local usuario
     print_header "Procesos del Usuario (snapshot)"
     
-    read -rp "  Ingresa el nombre de usuario a consultar: " usuario
+    usuario=$(seleccionar_usuario "Selecciona el usuario a consultar:")
+    [[ -z "$usuario" ]] && return 0
     echo ""
 
     # 1. Validar nombre vacío
@@ -55,7 +56,6 @@ procesos_snapshot() {
     total=$(ps -u "$usuario" --no-headers | wc -l)
 
     if [[ "$total" -eq 0 ]]; then
-        # Texto exacto según TASKS.md
         msg_warn "No hay procesos activos para '$usuario'."
     else
         ps aux --user "$usuario"
@@ -71,7 +71,8 @@ procesos_monitor() {
     local usuario
     print_header "Monitor en Tiempo Real"
     
-    read -rp "  Ingresa el usuario para monitorear: " usuario
+    usuario=$(seleccionar_usuario "Selecciona el usuario para monitorear:")
+    [[ -z "$usuario" ]] && return 0
     echo ""
 
     # 1. Validar vacío
@@ -94,5 +95,16 @@ procesos_monitor() {
     top -u "$usuario"
 
     # 4. Pausar al regresar de top
+    pausar
+}
+
+# procesos_root (Nueva funcionalidad solicitada)
+procesos_root() {
+    print_header "Procesos de root"
+    
+    ps aux --user root
+    
+    echo ""
+    msg_ok "Mostrando procesos actuales del usuario 'root'."
     pausar
 }
