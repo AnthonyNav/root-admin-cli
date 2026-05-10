@@ -62,12 +62,6 @@ msg_warn() {
 
 # ─── confirmar_accion <pregunta> ──────────────────────────────────────────────
 # Solicita confirmación al usuario.
-# Retorna 0 si el usuario responde 's' o 'S', 1 en cualquier otro caso.
-#
-# Ejemplo:
-#   if confirmar_accion "¿Deseas eliminar el usuario $usr?"; then
-#       userdel "$usr"
-#   fi
 confirmar_accion() {
     local pregunta="$1"
     local resp
@@ -77,12 +71,6 @@ confirmar_accion() {
 
 # ─── usuario_existe <nombre_usuario> ─────────────────────────────────────────
 # Verifica si un usuario existe en el sistema.
-# Retorna 0 si existe, 1 si no.
-#
-# Ejemplo:
-#   if usuario_existe "juan"; then
-#       echo "El usuario existe"
-#   fi
 usuario_existe() {
     [[ -z "$1" ]] && return 1
     id "$1" &>/dev/null
@@ -90,7 +78,6 @@ usuario_existe() {
 
 # ─── grupo_existe <nombre_grupo> ─────────────────────────────────────────────
 # Verifica si un grupo existe en el sistema.
-# Retorna 0 si existe, 1 si no.
 grupo_existe() {
     [[ -z "$1" ]] && return 1
     if getent group "$1" &>/dev/null; then
@@ -106,4 +93,47 @@ pausar() {
     echo ""
     read -rp "  Presiona Enter para continuar..."
     echo ""
+}
+
+# ─── WHIPTAIL HELPERS (Correcciones PR #1) ────────────────────────────────────
+
+# ─── seleccionar_usuario <titulo_ventana> ─────────────────────────────────────
+seleccionar_usuario() {
+    local lista arr
+    # Filtra usuarios con UID >= 1000 y < 65534 (ignora nobody)
+    lista=$(awk -F: '$3 >= 1000 && $3 < 65534 {print $1, $3}' /etc/passwd)
+    
+    if [[ -z "$lista" ]]; then
+        whiptail --title "Aviso" --msgbox "No hay usuarios disponibles (UID >= 1000)." 8 50
+        return 1
+    fi
+    
+    arr=($lista)
+    # 3>&1 1>&2 2>&3 intercambia los descriptores para capturar la salida
+    whiptail --title "Seleccionar Usuario" --menu "$1" 15 50 8 "${arr[@]}" 3>&1 1>&2 2>&3
+}
+
+# ─── seleccionar_grupo <titulo_ventana> ───────────────────────────────────────
+seleccionar_grupo() {
+    local lista arr
+    # Filtra grupos con GID >= 1000 y < 65534
+    lista=$(awk -F: '$3 >= 1000 && $3 < 65534 {print $1, $3}' /etc/group)
+    
+    if [[ -z "$lista" ]]; then
+        whiptail --title "Aviso" --msgbox "No hay grupos disponibles (GID >= 1000)." 8 50
+        return 1
+    fi
+    
+    arr=($lista)
+    whiptail --title "Seleccionar Grupo" --menu "$1" 15 50 8 "${arr[@]}" 3>&1 1>&2 2>&3
+}
+
+# ─── input_campo <mensaje> ────────────────────────────────────────────────────
+input_campo() {
+    whiptail --title "Entrada requerida" --inputbox "$1" 8 50 3>&1 1>&2 2>&3
+}
+
+# ─── confirmar_whiptail <pregunta> ────────────────────────────────────────────
+confirmar_whiptail() {
+    whiptail --title "Confirmación" --yesno "$1" 8 50
 }
