@@ -354,21 +354,20 @@ usuario_modificar() {
     fi
 
     while true; do
-        clear
-        print_header "Modificar Usuario: $usuario"
-        echo " 1) Cambiar fecha de caducidad de cuenta"
-        echo " 2) Cambiar directorio home"
-        echo " 3) Bloquear cuenta"
-        echo " 4) Desbloquear cuenta"
-        echo " 5) Cambiar shell"
-        echo " 6) Cambiar contrasena"
-        echo " 7) Cambiar comentario / nombre completo"
-        echo " 8) Forzar cambio de contrasena en el proximo inicio"
-        echo ""
-        echo " 0) Volver al menu de usuarios"
-        echo ""
-        read -rp " Selecciona una opcion: " opcion
-        echo ""
+        opcion=$(whiptail --title "Modificar Usuario: $usuario" \
+            --menu "Selecciona una opción:" 20 65 9 \
+            "1" "Cambiar fecha de caducidad de cuenta" \
+            "2" "Cambiar directorio home" \
+            "3" "Bloquear cuenta" \
+            "4" "Desbloquear cuenta" \
+            "5" "Cambiar shell" \
+            "6" "Cambiar contraseña" \
+            "7" "Cambiar comentario / nombre completo" \
+            "8" "Forzar cambio de contraseña en próximo inicio" \
+            "0" "Volver al menú de usuarios" \
+            3>&1 1>&2 2>&3)
+
+        [[ -z "$opcion" || "$opcion" == "0" ]] && return
 
         case "$opcion" in
             1)
@@ -484,7 +483,6 @@ usuario_modificar() {
                 fi
                 pausar
                 ;;
-            0) return ;;
             *) msg_warn "Opcion invalida."; pausar ;;
         esac
     done
