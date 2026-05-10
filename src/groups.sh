@@ -147,18 +147,16 @@ grupo_modificar() {
     [[ -z "$grupo" ]] && return 0
 
     while true; do
-        clear
-        print_header "Modificar Grupo: $grupo"
+        opcion=$(whiptail --title "Modificar Grupo: $grupo" \
+            --menu "Selecciona una opción:" 16 60 5 \
+            "1" "Renombrar grupo" \
+            "2" "Agregar miembro al grupo" \
+            "3" "Quitar miembro del grupo" \
+            "4" "Reemplazar lista completa de miembros" \
+            "0" "Volver" \
+            3>&1 1>&2 2>&3)
 
-        echo "1) Renombrar grupo"
-        echo "2) Agregar miembro al grupo"
-        echo "3) Quitar miembro del grupo"
-        echo "4) Reemplazar lista completa"
-        echo ""
-        echo "0) Volver"
-        echo ""
-
-        read -rp "Selecciona una opción: " opcion
+        [[ -z "$opcion" || "$opcion" == "0" ]] && return
 
         case $opcion in
             1)
@@ -210,7 +208,6 @@ grupo_modificar() {
                 fi
                 pausar
                 ;;
-            0) return ;;
             *) msg_warn "Opción inválida."; pausar ;;
         esac
     done
