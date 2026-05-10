@@ -124,8 +124,8 @@ phase2_install() {
     fi
 
     # 4. Instalar paquetes requeridos
-    log_info "Instalando paquetes: nagios, nagios-plugins-all, nrpe, wireshark, nmap, iftop, at, cronie, httpd, httpd-tools..."
-    dnf install -y nagios nagios-plugins-all nrpe wireshark nmap iftop at cronie httpd httpd-tools
+    log_info "Instalando paquetes: nagios, nagios-plugins-all, nrpe, nagios-plugins-nrpe, wireshark-qt, nmap, iftop, at, cronie, httpd, httpd-tools..."
+    dnf install -y nagios nagios-plugins-all nrpe nagios-plugins-nrpe wireshark-qt nmap iftop at cronie httpd httpd-tools
 
     # 5. Configurar autenticación web de Nagios
     log_info "Configurando autenticación para Nagios (httpd)..."
@@ -142,8 +142,8 @@ phase2_install() {
     set -e
 
     # 6. Habilitar y arrancar servicios
-    log_info "Habilitando y arrancando servicios principales (httpd, nagios, crond, atd)..."
-    systemctl enable --now httpd nagios crond atd
+    log_info "Habilitando y arrancando servicios principales (httpd, nagios, crond, atd, nrpe)..."
+    systemctl enable --now httpd nagios crond atd nrpe
 
     # 7. Configurar firewalld
     log_info "Configurando excepciones en firewalld..."
@@ -168,7 +168,7 @@ phase3_postflight() {
 
     # 1. Comprobar servicios en estado active
     log_info "Verificando el estado de los servicios..."
-    for servicio in httpd nagios crond atd; do
+    for servicio in httpd nagios crond atd nrpe; do
         if systemctl is-active --quiet "$servicio"; then
             echo -e "  - $servicio: ${GREEN}Activo y Corriendo${NC}"
         else

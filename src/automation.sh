@@ -3,52 +3,48 @@
 # Autor: Administrador de Sistemas Linux
 
 # ==========================================
-# Definición de Colores para la Interfaz
-# ==========================================
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-BLUE='\033[1;34m'
-CYAN='\033[1;36m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # Sin color
-
-# ==========================================
 # 2. Función: automatizar_cron
 # ==========================================
 automatizar_cron() {
     echo -e "\n${CYAN}--- Programar nueva tarea recurrente (CRON) ---${NC}"
-    read -r -p "Introduce el comando o script a ejecutar: " comando
+    comando=$(input_campo "Introduce el comando o script a ejecutar:")
     if [ -z "$comando" ]; then
-        echo -e "${RED}Error: El comando no puede estar vacío.${NC}"
+        msg_err "El comando no puede estar vacío."
+        pausar
         return
     fi
     
     echo -e "Ejemplo de formato: '* * * * *' (minuto hora día mes día_semana)"
-    read -r -p "Introduce la frecuencia en formato cron: " frecuencia
+    frecuencia=$(input_campo "Introduce la frecuencia en formato cron:")
     if [ -z "$frecuencia" ]; then
-        echo -e "${RED}Error: La frecuencia no puede estar vacía.${NC}"
+        msg_err "La frecuencia no puede estar vacía."
+        pausar
         return
     fi
 
-    # Se utiliza un archivo temporal para no sobreescribir las tareas previas
     local temp_cron
     temp_cron=$(mktemp)
     
-    # Exportamos el crontab actual al archivo temporal, ignorando errores si el usuario no tiene crontab previo
+    # Exportamos el crontab actual al archivo temporal, ignorando errores si no existe crontab
     crontab -l > "$temp_cron" 2>/dev/null || true
     
     # Agregamos la nueva tarea al final del archivo temporal
     echo "$frecuencia $comando" >> "$temp_cron"
     
-    # Cargamos el nuevo crontab en el sistema
-    if crontab "$temp_cron" 2>/dev/null; then
-        echo -e "${GREEN}¡Tarea cron agregada exitosamente!${NC}"
+    if confirmar_whiptail "¿Confirmas la tarea cron?"; then
+        # Cargamos el nuevo crontab en el sistema
+        if crontab "$temp_cron" 2>/dev/null; then
+            msg_ok "¡Tarea cron agregada exitosamente!"
+        else
+            msg_err "Error al agregar la tarea cron. Revisa la sintaxis de la frecuencia."
+        fi
     else
-        echo -e "${RED}Error al agregar la tarea cron. Revisa la sintaxis de la frecuencia.${NC}"
+        msg_warn "Tarea cron cancelada."
     fi
     
     # Limpieza
     rm -f "$temp_cron"
+    pausar
 }
 
 # ==========================================
@@ -56,25 +52,32 @@ automatizar_cron() {
 # ==========================================
 automatizar_at() {
     echo -e "\n${CYAN}--- Programar nueva tarea puntual (AT) ---${NC}"
-    read -r -p "Introduce el comando a ejecutar: " comando
+    comando=$(input_campo "Introduce el comando a ejecutar:")
     if [ -z "$comando" ]; then
-        echo -e "${RED}Error: El comando no puede estar vacío.${NC}"
+        msg_err "El comando no puede estar vacío."
+        pausar
         return
     fi
     
     echo -e "Ejemplos de formato: 'now + 1 minute', '5:00 PM', 'tomorrow', '23:00 05/10/2026'"
-    read -r -p "Introduce la fecha/hora: " tiempo
+    tiempo=$(input_campo "Introduce la fecha/hora:")
     if [ -z "$tiempo" ]; then
-        echo -e "${RED}Error: La fecha/hora no puede estar vacía.${NC}"
+        msg_err "La fecha/hora no puede estar vacía."
+        pausar
         return
     fi
 
-    # Programar la tarea enviando el comando por tubería (pipe) al comando 'at'
-    if echo "$comando" | at "$tiempo" 2>/dev/null; then
-        echo -e "${GREEN}¡Tarea 'at' programada exitosamente!${NC}"
+    if confirmar_whiptail "¿Confirmas la tarea puntual?"; then
+        # Programar la tarea enviando el comando por tubería (pipe) al comando 'at'
+        if echo "$comando" | at "$tiempo" 2>/dev/null; then
+            msg_ok "¡Tarea 'at' programada exitosamente!"
+        else
+            msg_err "Error al programar la tarea puntual. Revisa que el formato de hora/fecha sea válido."
+        fi
     else
-        echo -e "${RED}Error al programar la tarea puntual. Revisa que el formato de hora/fecha sea válido.${NC}"
+        msg_warn "Tarea puntual cancelada."
     fi
+    pausar
 }
 
 # ==========================================
@@ -88,13 +91,14 @@ listar_cron() {
         local output
         output=$(crontab -l)
         if [ -z "$output" ]; then
-            echo -e "${YELLOW}El crontab está vacío. No hay tareas recurrentes configuradas.${NC}"
+            msg_warn "El crontab está vacío. No hay tareas recurrentes configuradas."
         else
-            echo -e "${GREEN}$output${NC}"
+            msg_ok "$output"
         fi
     else
-        echo -e "${YELLOW}No hay tareas recurrentes configuradas (no existe un crontab para este usuario).${NC}"
+        msg_warn "No hay tareas recurrentes configuradas (no existe un crontab para este usuario)."
     fi
+    pausar
 }
 
 # ==========================================
@@ -108,10 +112,11 @@ listar_at() {
     output=$(atq 2>/dev/null)
     
     if [ -z "$output" ]; then
-        echo -e "${YELLOW}La cola de tareas puntuales está vacía.${NC}"
+        msg_warn "La cola de tareas puntuales está vacía."
     else
-        echo -e "${GREEN}$output${NC}"
+        msg_ok "$output"
     fi
+    pausar
 }
 
 # ==========================================
@@ -128,9 +133,9 @@ menu_automatizacion() {
         echo -e " 2) Programar tarea puntual (at)"
         echo -e " 3) Listar tareas recurrentes (cron)"
         echo -e " 4) Listar tareas puntuales (at)"
-        echo -e " 5) Salir"
+        echo -e " 0) Volver al menú principal"
         echo -e "${BLUE}================================================${NC}"
-        read -r -p "Selecciona una opción [1-5]: " opcion
+        opcion=$(input_campo "Selecciona una opción [0-4]:")
         
         # Manejo de la selección del usuario
         case $opcion in
@@ -138,19 +143,12 @@ menu_automatizacion() {
             2) automatizar_at ;;
             3) listar_cron ;;
             4) listar_at ;;
-            5) 
-                echo -e "\n${GREEN}Saliendo del módulo de automatización... ¡Hasta luego!${NC}"
-                break
-                ;;
+            0) return ;;
             *) 
                 # Gestión amigable de opciones inválidas
-                echo -e "\n${RED}Opción inválida '$opcion'. Por favor, selecciona un número del 1 al 5.${NC}"
+                msg_err "Opción inválida '$opcion'. Por favor, selecciona un número del 0 al 4."
+                pausar
                 ;;
         esac
     done
 }
-
-# ==========================================
-# Ejecución Principal
-# ==========================================
-menu_automatizacion
