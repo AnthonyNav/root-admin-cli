@@ -7,25 +7,23 @@
 #
 
 # menu_procesos 
-menu_grupos() {
+menu_procesos() {
     local opcion
     while true; do
-        opcion=$(whiptail --title "Gestión de Grupos" \
-            --menu "Selecciona una opción:" 16 60 5 \
-            "1" "Alta de grupo" \
-            "2" "Baja de grupo" \
-            "3" "Consulta de grupo" \
-            "4" "Modificaciones de grupo" \
+        opcion=$(whiptail --title "Procesos por Usuario" \
+            --menu "Selecciona una opción:" 14 60 4 \
+            "1" "Ver procesos del usuario (snapshot)" \
+            "2" "Monitor en tiempo real (top)" \
+            "3" "Ver procesos de root" \
             "0" "Volver al menú principal" \
             3>&1 1>&2 2>&3)
 
         [[ -z "$opcion" || "$opcion" == "0" ]] && return
 
         case "$opcion" in
-            1) grupo_alta     ;;
-            2) grupo_baja     ;;
-            3) grupo_consulta ;;
-            4) grupo_modificar ;;
+            1) procesos_snapshot ;;
+            2) procesos_monitor  ;;
+            3) procesos_root     ;;
             *) msg_warn "Opción inválida."; pausar ;;
         esac
     done
