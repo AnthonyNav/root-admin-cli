@@ -124,8 +124,8 @@ phase2_install() {
     fi
 
     # 4. Instalar paquetes requeridos
-    log_info "Instalando paquetes: nagios, nagios-plugins-all, nrpe, nagios-plugins-nrpe, wireshark-qt, nmap, iftop, at, cronie, httpd, httpd-tools..."
-    dnf install -y nagios nagios-plugins-all nrpe nagios-plugins-nrpe wireshark-qt nmap iftop at cronie httpd httpd-tools
+    log_info "Instalando paquetes: nagios, nagios-plugins-all, nrpe, nagios-plugins-nrpe, wireshark, nmap, iftop, at, cronie, httpd, httpd-tools..."
+    dnf install -y nagios nagios-plugins-all nrpe nagios-plugins-nrpe wireshark nmap iftop at cronie httpd httpd-tools
 
     # 5. Configurar autenticación web de Nagios
     log_info "Configurando autenticación para Nagios (httpd)..."
