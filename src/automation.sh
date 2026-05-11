@@ -84,7 +84,7 @@ automatizar_at() {
 # 4. Función: listar_cron
 # ==========================================
 listar_cron() {
-    echo -e "\n${BLUE}--- Tareas Cron Actuales ---${NC}"
+    echo -e "\n${CYAN}--- Tareas Cron Actuales ---${NC}"
     
     # Si crontab -l devuelve un código distinto de 0, significa que no hay crontab para el usuario
     if crontab -l >/dev/null 2>&1; then
@@ -105,7 +105,7 @@ listar_cron() {
 # 5. Función: listar_at
 # ==========================================
 listar_at() {
-    echo -e "\n${BLUE}--- Tareas Puntuales Programadas (AT) ---${NC}"
+    echo -e "\n${CYAN}--- Tareas Puntuales Programadas (AT) ---${NC}"
     
     # El comando atq lista la cola de trabajos programados
     local output
@@ -126,15 +126,15 @@ menu_automatizacion() {
     local opcion
     # Ciclo infinito del menú
     while true; do
-        echo -e "\n${BLUE}================================================${NC}"
+        echo -e "\n${CYAN}================================================${NC}"
         echo -e "${CYAN}      MENÚ DE GESTIÓN DE AUTOMATIZACIÓN         ${NC}"
-        echo -e "${BLUE}================================================${NC}"
+        echo -e "${CYAN}================================================${NC}"
         echo -e " 1) Programar tarea recurrente (cron)"
         echo -e " 2) Programar tarea puntual (at)"
         echo -e " 3) Listar tareas recurrentes (cron)"
         echo -e " 4) Listar tareas puntuales (at)"
         echo -e " 0) Volver al menú principal"
-        echo -e "${BLUE}================================================${NC}"
+        echo -e "${CYAN}================================================${NC}"
         opcion=$(input_campo "Selecciona una opción [0-4]:")
         
         # Manejo de la selección del usuario
