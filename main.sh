@@ -15,6 +15,7 @@ source "$SCRIPT_DIR/src/lib/utils.sh"
 source "$SCRIPT_DIR/src/users.sh"
 source "$SCRIPT_DIR/src/groups.sh"
 source "$SCRIPT_DIR/src/processes.sh"
+source "$SCRIPT_DIR/src/automation.sh"
 
 # ─── Verificación de root ─────────────────────────────────────────────────────
 if [[ $EUID -ne 0 ]]; then
@@ -31,10 +32,11 @@ main() {
 
     while true; do
         opcion=$(whiptail --title "Administración de Redes — Menú Principal" \
-            --menu "Selecciona un módulo a gestionar:" 15 60 4 \
+            --menu "Selecciona un módulo a gestionar:" 17 60 5 \
             "1" "Usuarios" \
             "2" "Grupos" \
             "3" "Procesos de usuario" \
+            "4" "Automatización de tareas" \
             "0" "Salir" \
             3>&1 1>&2 2>&3)
 
@@ -46,9 +48,10 @@ main() {
         fi
 
         case $opcion in
-            1) menu_usuarios ;;
-            2) menu_grupos   ;;
-            3) menu_procesos ;;
+            1) menu_usuarios       ;;
+            2) menu_grupos         ;;
+            3) menu_procesos       ;;
+            4) menu_automatizacion ;;
             *)
                 msg_warn "Opción inválida. Intenta de nuevo."
                 pausar
