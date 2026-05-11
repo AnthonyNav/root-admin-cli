@@ -93,7 +93,8 @@ listar_cron() {
         if [ -z "$output" ]; then
             msg_warn "El crontab está vacío. No hay tareas recurrentes configuradas."
         else
-            msg_ok "$output"
+            echo ""
+            echo "$output"
         fi
     else
         msg_warn "No hay tareas recurrentes configuradas (no existe un crontab para este usuario)."
@@ -114,7 +115,8 @@ listar_at() {
     if [ -z "$output" ]; then
         msg_warn "La cola de tareas puntuales está vacía."
     else
-        msg_ok "$output"
+        echo ""
+        echo "$output"
     fi
     pausar
 }
