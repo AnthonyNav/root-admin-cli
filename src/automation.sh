@@ -126,9 +126,7 @@ menu_automatizacion() {
     local opcion
     # Ciclo infinito del menú
     while true; do
-        echo -e "\n${CYAN}================================================${NC}"
-        echo -e "${CYAN}      MENÚ DE GESTIÓN DE AUTOMATIZACIÓN         ${NC}"
-        echo -e "${CYAN}================================================${NC}"
+        print_header "Gestión de Automatización"
         echo -e " 1) Programar tarea recurrente (cron)"
         echo -e " 2) Programar tarea puntual (at)"
         echo -e " 3) Listar tareas recurrentes (cron)"
