@@ -111,14 +111,14 @@ check "todos los módulos cargan sin errores" 0 $?
 separator "3. automation.sh — migración completa"
 check_not_contains \
     "sin echo numerado en menu" \
-    'echo.*[[:space:]][0-9]\)' \
+    '^[[:space:]]*echo(-e)?[[:space:]]+["'"'"']?[[:space:]]*[0-9]\)' \
     "$SCRIPT_DIR/src/automation.sh"
 check_not_contains \
     "sin read -rp en menu principal" \
     'read -rp.*opcion' \
     "$SCRIPT_DIR/src/automation.sh"
 COUNT=$(grep -c "gum choose" "$SCRIPT_DIR/src/automation.sh" 2>/dev/null || true)
-check_count "1 menú gum choose en automation.sh" 1 "$COUNT"
+check_count "2 usos de gum choose en automation.sh (menú + frecuencia)" 2 "$COUNT"
 
 separator "4. backup.sh — migración completa"
 check_not_contains \
@@ -129,8 +129,8 @@ COUNT=$(grep -c "read -rp" "$SCRIPT_DIR/src/backup.sh" 2>/dev/null || true)
 check_count "0 read -rp restantes en backup.sh" 0 "$COUNT"
 COUNT=$(grep -c "gum choose" "$SCRIPT_DIR/src/backup.sh" 2>/dev/null || true)
 check_count "1 menú gum choose en backup.sh" 1 "$COUNT"
-COUNT=$(grep -c "input_campo" "$SCRIPT_DIR/src/backup.sh" 2>/dev/null || true)
-check_count "4 input_campo en backup.sh (origen+destino × 2 func)" 4 "$COUNT"
+COUNT=$(grep -c "seleccionar_directorio" "$SCRIPT_DIR/src/backup.sh" 2>/dev/null || true)
+check_count "4 seleccionar_directorio en backup.sh (origen+destino × 2 func)" 4 "$COUNT"
 
 separator "5. security.sh — migración completa"
 check_not_contains \
@@ -156,6 +156,10 @@ separator "7. deps.txt actualizado"
 check_contains \
     "figlet en deps.txt" \
     "figlet" \
+    "$SCRIPT_DIR/deps.txt"
+check_contains \
+    "fzf en deps.txt" \
+    "fzf" \
     "$SCRIPT_DIR/deps.txt"
 
 separator "8. Compatibilidad con suites existentes"
