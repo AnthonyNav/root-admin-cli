@@ -10,6 +10,33 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# ─── Instalación automática de herramientas UI ────────────────────────────────
+instalar_ui() {
+    if ! command -v gum &>/dev/null; then
+        echo "Instalando gum (primera ejecución)..."
+        echo '[charm]
+name=Charm
+baseurl=https://repo.charm.sh/yum/
+enabled=1
+gpgcheck=1
+gpgkey=https://repo.charm.sh/yum/gpg.key' | tee /etc/yum.repos.d/charm.repo >/dev/null
+        rpm --import https://repo.charm.sh/yum/gpg.key 2>/dev/null
+        dnf install -y gum >/dev/null 2>&1 && echo "gum instalado." || echo "Error instalando gum."
+    fi
+    if ! command -v figlet &>/dev/null; then
+        dnf install -y figlet >/dev/null 2>&1
+    fi
+}
+
+# ─── Título visual del sistema ────────────────────────────────────────────────
+show_titulo() {
+    clear
+    echo ""
+    figlet -f slant "Admin Redes" | gum style --foreground 6
+    gum style --foreground 8 "  Administración de Redes · AlmaLinux 9 · BUAP"
+    echo ""
+}
+
 # ─── Cargar módulos ───────────────────────────────────────────────────────────
 source "$SCRIPT_DIR/src/lib/utils.sh"
 source "$SCRIPT_DIR/src/users.sh"
@@ -18,6 +45,9 @@ source "$SCRIPT_DIR/src/processes.sh"
 source "$SCRIPT_DIR/src/automation.sh"
 source "$SCRIPT_DIR/src/backup.sh"
 source "$SCRIPT_DIR/src/security.sh"
+
+# Instalar herramientas de UI si no están presentes
+instalar_ui
 
 # ─── Verificación de root ─────────────────────────────────────────────────────
 if [[ $EUID -ne 0 ]]; then
