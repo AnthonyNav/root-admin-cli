@@ -14,13 +14,40 @@ automatizar_cron() {
         return
     fi
     
-    echo -e "Ejemplo de formato: '* * * * *' (minuto hora día mes día_semana)"
-    frecuencia=$(input_campo "Introduce la frecuencia en formato cron:")
-    if [ -z "$frecuencia" ]; then
-        msg_err "La frecuencia no puede estar vacía."
-        pausar
-        return
-    fi
+    local opcion_freq
+    opcion_freq=$(gum choose \
+        --header "¿Con qué frecuencia se ejecutará la tarea?" \
+        --cursor "▸ " \
+        "Cada minuto          →  * * * * *" \
+        "Cada hora            →  0 * * * *" \
+        "Diariamente (00:00)  →  0 0 * * *" \
+        "Semanalmente (lunes) →  0 0 * * 1" \
+        "Mensualmente (día 1) →  0 0 1 * *" \
+        "Personalizado        →  escribir expresión")
+
+    [[ -z "$opcion_freq" ]] && return
+
+    case "$opcion_freq" in
+        "Cada minuto"*)          frecuencia="* * * * *" ;;
+        "Cada hora"*)            frecuencia="0 * * * *" ;;
+        "Diariamente"*)          frecuencia="0 0 * * *" ;;
+        "Semanalmente"*)         frecuencia="0 0 * * 1" ;;
+        "Mensualmente"*)         frecuencia="0 0 1 * *" ;;
+        "Personalizado"*)
+            echo ""
+            gum style --foreground 8 \
+                "Formato: MIN HORA DÍA MES DÍA_SEMANA"
+            gum style --foreground 8 \
+                "Ejemplo: 30 8 * * 1-5  (lun-vie a las 8:30)"
+            echo ""
+            frecuencia=$(input_campo "Escribe la expresión cron:")
+            if [[ -z "$frecuencia" ]]; then
+                msg_err "La frecuencia no puede estar vacía."
+                pausar
+                return
+            fi
+            ;;
+    esac
 
     local temp_cron
     temp_cron=$(mktemp)
