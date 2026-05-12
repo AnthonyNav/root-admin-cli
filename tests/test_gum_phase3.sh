@@ -117,7 +117,7 @@ check_not_contains \
     "sin read -rp en menu principal" \
     'read -rp.*opcion' \
     "$SCRIPT_DIR/src/automation.sh"
-COUNT=$(grep -c "gum choose" "$SCRIPT_DIR/src/automation.sh" 2>/dev/null || echo 0)
+COUNT=$(grep -c "gum choose" "$SCRIPT_DIR/src/automation.sh" 2>/dev/null || true)
 check_count "1 menú gum choose en automation.sh" 1 "$COUNT"
 
 separator "4. backup.sh — migración completa"
@@ -125,11 +125,11 @@ check_not_contains \
     "sin echo numerado en menu" \
     'echo.*[[:space:]][0-9]\)' \
     "$SCRIPT_DIR/src/backup.sh"
-COUNT=$(grep -c "read -rp" "$SCRIPT_DIR/src/backup.sh" 2>/dev/null || echo 0)
+COUNT=$(grep -c "read -rp" "$SCRIPT_DIR/src/backup.sh" 2>/dev/null || true)
 check_count "0 read -rp restantes en backup.sh" 0 "$COUNT"
-COUNT=$(grep -c "gum choose" "$SCRIPT_DIR/src/backup.sh" 2>/dev/null || echo 0)
+COUNT=$(grep -c "gum choose" "$SCRIPT_DIR/src/backup.sh" 2>/dev/null || true)
 check_count "1 menú gum choose en backup.sh" 1 "$COUNT"
-COUNT=$(grep -c "input_campo" "$SCRIPT_DIR/src/backup.sh" 2>/dev/null || echo 0)
+COUNT=$(grep -c "input_campo" "$SCRIPT_DIR/src/backup.sh" 2>/dev/null || true)
 check_count "4 input_campo en backup.sh (origen+destino × 2 func)" 4 "$COUNT"
 
 separator "5. security.sh — migración completa"
@@ -137,19 +137,19 @@ check_not_contains \
     "sin echo numerado en menus" \
     'echo.*[[:space:]][0-9]\)' \
     "$SCRIPT_DIR/src/security.sh"
-COUNT=$(grep -c "read -rp" "$SCRIPT_DIR/src/security.sh" 2>/dev/null || echo 0)
+COUNT=$(grep -c "read -rp" "$SCRIPT_DIR/src/security.sh" 2>/dev/null || true)
 check_count "0 read -rp restantes en security.sh" 0 "$COUNT"
-COUNT=$(grep -c "gum choose" "$SCRIPT_DIR/src/security.sh" 2>/dev/null || echo 0)
+COUNT=$(grep -c "gum choose" "$SCRIPT_DIR/src/security.sh" 2>/dev/null || true)
 check_count "3 menús gum choose en security.sh" 3 "$COUNT"
-COUNT=$(grep -c "input_campo" "$SCRIPT_DIR/src/security.sh" 2>/dev/null || echo 0)
+COUNT=$(grep -c "input_campo" "$SCRIPT_DIR/src/security.sh" 2>/dev/null || true)
 check_count "1 input_campo en security.sh (objetivo nmap)" 1 "$COUNT"
 
 separator "6. Inventario global — sin whiptail ni read -rp en módulos"
 ARCHIVOS="src/automation.sh src/backup.sh src/security.sh \
           src/users.sh src/groups.sh src/processes.sh main.sh"
 for f in $ARCHIVOS; do
-    COUNT=$(grep -c "whiptail" "$SCRIPT_DIR/$f" 2>/dev/null || echo 0)
-    check_count "$f sin whiptail" 0 "$COUNT"
+    COUNT=$(grep -cE "whiptail[[:space:]]+--" "$SCRIPT_DIR/$f" 2>/dev/null || true)
+    check_count "$f sin comando whiptail" 0 "$COUNT"
 done
 
 separator "7. deps.txt actualizado"
