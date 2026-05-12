@@ -128,27 +128,24 @@ menu_automatizacion() {
     local opcion
     # Ciclo infinito del menú
     while true; do
+        clear
         print_header "Gestión de Automatización"
-        echo -e " 1) Programar tarea recurrente (cron)"
-        echo -e " 2) Programar tarea puntual (at)"
-        echo -e " 3) Listar tareas recurrentes (cron)"
-        echo -e " 4) Listar tareas puntuales (at)"
-        echo -e " 0) Volver al menú principal"
-        echo -e "${CYAN}================================================${NC}"
-        opcion=$(input_campo "Selecciona una opción [0-4]:")
-        
-        # Manejo de la selección del usuario
-        case $opcion in
-            1) automatizar_cron ;;
-            2) automatizar_at ;;
-            3) listar_cron ;;
-            4) listar_at ;;
-            0) return ;;
-            *) 
-                # Gestión amigable de opciones inválidas
-                msg_err "Opción inválida '$opcion'. Por favor, selecciona un número del 0 al 4."
-                pausar
-                ;;
+        opcion=$(gum choose \
+            --header "Selecciona una opción:" \
+            --cursor "▸ " \
+            "Programar tarea recurrente (cron)" \
+            "Programar tarea puntual (at)" \
+            "Listar tareas recurrentes (cron)" \
+            "Listar tareas puntuales (at)" \
+            "← Volver al menú principal")
+
+        [[ -z "$opcion" || "$opcion" == "← Volver al menú principal" ]] && return
+
+        case "$opcion" in
+            "Programar tarea recurrente (cron)") automatizar_cron ;;
+            "Programar tarea puntual (at)")      automatizar_at   ;;
+            "Listar tareas recurrentes (cron)")  listar_cron      ;;
+            "Listar tareas puntuales (at)")      listar_at        ;;
         esac
     done
 }
