@@ -47,11 +47,10 @@ abrir_nagios() {
     local url="http://localhost/nagios"
 
     verificar_comando nagios || return
-    verificar_comando httpd || return
-    verificar_comando xdg-open || return
+    verificar_comando httpd  || return
 
     verificar_servicio nagios || return
-    verificar_servicio httpd || return
+    verificar_servicio httpd  || return
 
     print_header "Nagios"
 
@@ -59,10 +58,13 @@ abrir_nagios() {
     echo "Usuario: nagiosadmin"
     echo ""
 
-    msg_ok "Intentando abrir Nagios en el navegador..."
-    xdg-open "$url" >/dev/null 2>&1 &
+    if command -v xdg-open >/dev/null 2>&1; then
+        msg_ok "Intentando abrir Nagios en el navegador..."
+        xdg-open "$url" >/dev/null 2>&1 &
+    else
+        msg_warn "xdg-open no disponible. Abre manualmente: $url"
+    fi
 
-    msg_warn "Si el navegador no abre, entra manualmente a: $url"
     pausar
 }
 
