@@ -16,6 +16,7 @@ source "$SCRIPT_DIR/src/users.sh"
 source "$SCRIPT_DIR/src/groups.sh"
 source "$SCRIPT_DIR/src/processes.sh"
 source "$SCRIPT_DIR/src/automation.sh"
+source "$SCRIPT_DIR/src/backup.sh"
 source "$SCRIPT_DIR/src/security.sh"
 
 # ─── Verificación de root ─────────────────────────────────────────────────────
@@ -33,11 +34,12 @@ main() {
 
     while true; do
         opcion=$(whiptail --title "Administración de Redes — Menú Principal" \
-            --menu "Selecciona un módulo a gestionar:" 18 60 6 \
+            --menu "Selecciona un módulo a gestionar:" 20 60 7 \
             "1" "Usuarios" \
             "2" "Grupos" \
             "3" "Procesos de usuario" \
             "4" "Automatización de tareas" \
+            "5" "Respaldo de información" \
             "6" "Seguridad / Monitoreo" \
             "0" "Salir" \
             3>&1 1>&2 2>&3)
@@ -54,6 +56,7 @@ main() {
             2) menu_grupos         ;;
             3) menu_procesos       ;;
             4) menu_automatizacion ;;
+            5) menu_respaldo       ;;
             6) menu_seguridad      ;;
             *)
                 msg_warn "Opción inválida. Intenta de nuevo."
