@@ -86,13 +86,13 @@ abrir_wireshark() {
 # Pide objetivo y tipo de escaneo.
 ejecutar_nmap() {
     local objetivo
-    local opcion
+    local tipo
 
     verificar_comando nmap || return
 
     print_header "Nmap"
 
-    read -rp "Objetivo a escanear, ejemplo localhost, 192.168.1.1 o 192.168.1.0/24: " objetivo
+    objetivo=$(input_campo "Objetivo: localhost, 192.168.1.1 o 192.168.1.0/24")
 
     if [[ -z "$objetivo" ]]; then
         msg_err "Debes ingresar un objetivo."
@@ -100,35 +100,28 @@ ejecutar_nmap() {
         return
     fi
 
-    echo ""
-    echo "Tipo de escaneo:"
-    echo "1) Escaneo basico"
-    echo "2) Deteccion de versiones"
-    echo "3) Escaneo red local"
-    echo "0) Volver"
-    echo ""
+    tipo=$(gum choose \
+        --header "Tipo de escaneo para $objetivo:" \
+        --cursor "▸ " \
+        "Escaneo básico de puertos" \
+        "Detección de versiones (-sV)" \
+        "Escaneo de red local (-sn)" \
+        "← Volver")
 
-    read -rp "Selecciona una opcion: " opcion
-    echo ""
+    [[ -z "$tipo" || "$tipo" == "← Volver" ]] && return
 
-    case "$opcion" in
-        1)
+    case "$tipo" in
+        "Escaneo básico de puertos")
             msg_ok "Ejecutando: nmap $objetivo"
             nmap "$objetivo"
             ;;
-        2)
+        "Detección de versiones (-sV)")
             msg_ok "Ejecutando: nmap -sV $objetivo"
             nmap -sV "$objetivo"
             ;;
-        3)
+        "Escaneo de red local (-sn)")
             msg_ok "Ejecutando: nmap -sn $objetivo"
             nmap -sn "$objetivo"
-            ;;
-        0)
-            return
-            ;;
-        *)
-            msg_err "Opcion invalida."
             ;;
     esac
 
@@ -160,28 +153,18 @@ menu_monitor_red() {
     while true; do
         clear
         print_header "Monitor de Red"
+        opcion=$(gum choose \
+            --header "Selecciona una herramienta:" \
+            --cursor "▸ " \
+            "Nmap — escaneo de puertos y hosts" \
+            "iftop — monitor de tráfico en tiempo real" \
+            "← Volver")
 
-        echo "1) Nmap"
-        echo "2) iftop"
-        echo "0) Volver"
-        echo ""
-
-        read -rp "Selecciona una opcion: " opcion
+        [[ -z "$opcion" || "$opcion" == "← Volver" ]] && return
 
         case "$opcion" in
-            1)
-                ejecutar_nmap
-                ;;
-            2)
-                ejecutar_iftop
-                ;;
-            0)
-                return
-                ;;
-            *)
-                msg_err "Opcion invalida."
-                pausar
-                ;;
+            "Nmap — escaneo de puertos y hosts")         ejecutar_nmap  ;;
+            "iftop — monitor de tráfico en tiempo real") ejecutar_iftop ;;
         esac
     done
 }
@@ -194,32 +177,20 @@ menu_seguridad() {
     while true; do
         clear
         print_header "Seguridad / Monitoreo"
+        opcion=$(gum choose \
+            --header "Selecciona una opción:" \
+            --cursor "▸ " \
+            "Abrir Nagios (dashboard web)" \
+            "Abrir Wireshark (captura de tráfico)" \
+            "Monitor de red: Nmap o iftop" \
+            "← Volver al menú principal")
 
-        echo "1) Abrir Nagios"
-        echo "2) Abrir Wireshark"
-        echo "3) Monitor de red: Nmap o iftop"
-        echo "0) Volver al menu principal"
-        echo ""
-
-        read -rp "Selecciona una opcion: " opcion
+        [[ -z "$opcion" || "$opcion" == "← Volver al menú principal" ]] && return
 
         case "$opcion" in
-            1)
-                abrir_nagios
-                ;;
-            2)
-                abrir_wireshark
-                ;;
-            3)
-                menu_monitor_red
-                ;;
-            0)
-                return
-                ;;
-            *)
-                msg_err "Opcion invalida."
-                pausar
-                ;;
+            "Abrir Nagios (dashboard web)")          abrir_nagios     ;;
+            "Abrir Wireshark (captura de tráfico)")  abrir_wireshark  ;;
+            "Monitor de red: Nmap o iftop")          menu_monitor_red ;;
         esac
     done
 }
