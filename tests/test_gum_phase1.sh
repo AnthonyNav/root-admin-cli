@@ -215,6 +215,7 @@ export -f gum
 OUTPUT=$(bash -c "
     $GUM_MOCK
     source '$UTILS_FILE'
+    ui_interactiva() { return 0; }
     confirmar_whiptail 'Prueba'
     echo \$?
 " 2>/dev/null)
@@ -227,6 +228,7 @@ check_output_contains \
 OUTPUT=$(bash -c "
     $GUM_MOCK
     source '$UTILS_FILE'
+    ui_interactiva() { return 0; }
     input_campo 'Ingresa algo'
 " 2>/dev/null)
 check_output_contains \
@@ -238,6 +240,7 @@ check_output_contains \
 OUTPUT=$(bash -c "
     $GUM_MOCK
     source '$UTILS_FILE'
+    ui_interactiva() { return 0; }
     print_header 'Prueba Header'
 " 2>/dev/null)
 check_output_contains \
@@ -249,6 +252,7 @@ check_output_contains \
 OUTPUT=$(bash -c "
     $GUM_MOCK
     source '$UTILS_FILE'
+    ui_interactiva() { return 0; }
     seleccionar_usuario 'Elige:'
 " 2>/dev/null)
 [[ -n "$OUTPUT" ]]
