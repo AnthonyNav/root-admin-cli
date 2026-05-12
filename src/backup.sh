@@ -29,21 +29,18 @@ menu_respaldo() {
     while true; do
         clear
         print_header "Respaldo de Información"
+        opcion=$(gum choose \
+            --header "Selecciona una opción:" \
+            --cursor "▸ " \
+            "Respaldo con Gzip (.tar.gz)" \
+            "Respaldo con Bzip2 (.tar.bz2)" \
+            "← Volver al menú principal")
 
-        echo "  1) Respaldo con Gzip (.tar.gz)"
-        echo "  2) Respaldo con Bzip2 (.tar.bz2)"
-        echo ""
-        echo "  0) Volver al menú principal"
-        echo ""
+        [[ -z "$opcion" || "$opcion" == "← Volver al menú principal" ]] && return
 
-        read -rp "  Selecciona una opción: " opcion
-        echo ""
-
-        case $opcion in
-            1) respaldar_gzip ;;
-            2) respaldar_bzip2 ;;
-            0) return ;;
-            *) msg_warn "Opción inválida."; pausar ;;
+        case "$opcion" in
+            "Respaldo con Gzip (.tar.gz)")   respaldar_gzip  ;;
+            "Respaldo con Bzip2 (.tar.bz2)") respaldar_bzip2 ;;
         esac
     done
 }
@@ -59,7 +56,7 @@ respaldar_gzip() {
     local destino
 
     # Solicitar carpeta origen
-    read -rp "Carpeta origen: " origen
+    origen=$(input_campo "Carpeta origen (ej: /home/usuario):")
 
     if [[ -z "$origen" ]]; then
         msg_err "La ruta de origen no puede estar vacía."
@@ -75,7 +72,7 @@ respaldar_gzip() {
     fi
 
     # Solicitar carpeta destino
-    read -rp "Ruta destino: " destino
+    destino=$(input_campo "Ruta de destino (ej: /backups):")
 
     if [[ -z "$destino" ]]; then
         msg_err "La ruta de destino no puede estar vacía."
@@ -157,7 +154,7 @@ respaldar_bzip2() {
     local destino
 
     # Solicitar carpeta origen
-    read -rp "Carpeta origen: " origen
+    origen=$(input_campo "Carpeta origen (ej: /home/usuario):")
 
     if [[ -z "$origen" ]]; then
         msg_err "La ruta de origen no puede estar vacía."
@@ -173,7 +170,7 @@ respaldar_bzip2() {
     fi
 
     # Solicitar carpeta destino
-    read -rp "Ruta destino: " destino
+    destino=$(input_campo "Ruta de destino (ej: /backups):")
 
     if [[ -z "$destino" ]]; then
         msg_err "La ruta de destino no puede estar vacía."
