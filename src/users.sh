@@ -19,7 +19,21 @@ if ! declare -F pausar >/dev/null 2>&1; then pausar() { echo ""; read -rp "Presi
 if ! declare -F confirmar_accion >/dev/null 2>&1; then confirmar_accion() { local resp; read -rp "$1 [s/N]: " resp; [[ "$resp" =~ ^[sS]$ ]]; }; fi
 if ! declare -F usuario_existe >/dev/null 2>&1; then usuario_existe() { getent passwd "$1" >/dev/null 2>&1; }; fi
 
-# Fallbacks de whiptail aislados
+# Fallbacks de UI aislados
+if ! declare -F seleccionar_menu >/dev/null 2>&1; then
+    seleccionar_menu() {
+        local _titulo="$1" _prompt="$2" opcion
+        shift 2 || return 1
+        echo "$_titulo" >&2
+        echo "$_prompt" >&2
+        while (( $# >= 2 )); do
+            printf '  [%s] %s\n' "$1" "$2" >&2
+            shift 2
+        done
+        read -rp "Opción: " opcion || return 1
+        printf '%s\n' "$opcion"
+    }
+fi
 if ! declare -F seleccionar_usuario >/dev/null 2>&1; then seleccionar_usuario() { read -rp "$1 " usr; echo "$usr"; }; fi
 if ! declare -F input_campo >/dev/null 2>&1; then input_campo() { read -rp "$1 " input; echo "$input"; }; fi
 if ! declare -F confirmar_whiptail >/dev/null 2>&1; then confirmar_whiptail() { confirmar_accion "$1"; }; fi
@@ -126,14 +140,16 @@ validar_shell() {
 menu_usuarios() {
     local opcion
     while true; do
-        opcion=$(whiptail --title "Gestión de Usuarios" \
-            --menu "Selecciona una opción:" 16 60 5 \
+        clear
+        print_header "Gestión de Usuarios"
+        opcion=$(seleccionar_menu \
+            "Gestión de Usuarios" \
+            "Selecciona una opción:" \
             "1" "Alta de usuario" \
             "2" "Baja de usuario" \
             "3" "Consulta de usuario" \
             "4" "Modificaciones de usuario" \
-            "0" "Volver al menú principal" \
-            3>&1 1>&2 2>&3)
+            "0" "Volver al menú principal")
 
         [[ -z "$opcion" || "$opcion" == "0" ]] && return
 
@@ -354,8 +370,11 @@ usuario_modificar() {
     fi
 
     while true; do
-        opcion=$(whiptail --title "Modificar Usuario: $usuario" \
-            --menu "Selecciona una opción:" 20 65 9 \
+        clear
+        print_header "Modificar Usuario: $usuario"
+        opcion=$(seleccionar_menu \
+            "Modificar Usuario: $usuario" \
+            "Selecciona una opción:" \
             "1" "Cambiar fecha de caducidad de cuenta" \
             "2" "Cambiar directorio home" \
             "3" "Bloquear cuenta" \
@@ -364,8 +383,7 @@ usuario_modificar() {
             "6" "Cambiar contraseña" \
             "7" "Cambiar comentario / nombre completo" \
             "8" "Forzar cambio de contraseña en próximo inicio" \
-            "0" "Volver al menú de usuarios" \
-            3>&1 1>&2 2>&3)
+            "0" "Volver al menú de usuarios")
 
         [[ -z "$opcion" || "$opcion" == "0" ]] && return
 

@@ -10,13 +10,15 @@
 menu_procesos() {
     local opcion
     while true; do
-        opcion=$(whiptail --title "Procesos por Usuario" \
-            --menu "Selecciona una opción:" 14 60 4 \
+        clear
+        print_header "Procesos por Usuario"
+        opcion=$(seleccionar_menu \
+            "Procesos por Usuario" \
+            "Selecciona una opción:" \
             "1" "Ver procesos del usuario (snapshot)" \
             "2" "Monitor en tiempo real (top)" \
             "3" "Ver procesos de root" \
-            "0" "Volver al menú principal" \
-            3>&1 1>&2 2>&3)
+            "0" "Volver al menú principal")
 
         [[ -z "$opcion" || "$opcion" == "0" ]] && return
 

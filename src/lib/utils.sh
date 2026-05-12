@@ -101,12 +101,57 @@ pausar() {
 
 # ─── UI HELPERS (Correcciones PR #1) ──────────────────────────────────────────
 
+# ─── ui_interactiva ───────────────────────────────────────────────────────────
+# Indica si la terminal permite abrir prompts interactivos con gum.
+ui_interactiva() {
+    command -v gum &>/dev/null &&
+        [[ -r /dev/tty && -w /dev/tty ]] &&
+        [[ -t 0 || -t 1 || -t 2 ]]
+}
+
+# ─── seleccionar_menu <titulo> <prompt> <clave> <desc>... ───────────────────
+# Muestra un menú con gum choose y retorna la clave elegida en stdout.
+# Si no hay TTY interactiva, cae a un prompt simple con read.
+seleccionar_menu() {
+    local titulo="$1"
+    local prompt="$2"
+    local seleccion opcion clave descripcion
+    shift 2 || return 1
+
+    if (( $# == 0 || $# % 2 != 0 )); then
+        return 1
+    fi
+
+    if ui_interactiva; then
+        while (( $# >= 2 )); do
+            clave="$1"
+            descripcion="$2"
+            printf '%s\t%s\n' "$clave" "$descripcion"
+            shift 2
+        done | gum choose --header "$titulo"$'\n'"$prompt" --cursor "▸ " | {
+            IFS=$'\t' read -r seleccion _
+            [[ -n "$seleccion" ]] || return 1
+            printf '%s\n' "$seleccion"
+        }
+        return ${PIPESTATUS[1]}
+    fi
+
+    echo "$titulo" >&2
+    echo "$prompt" >&2
+    while (( $# >= 2 )); do
+        printf '  [%s] %s\n' "$1" "$2" >&2
+        shift 2
+    done
+    read -rp "Opción: " opcion || return 1
+    printf '%s\n' "$opcion"
+}
+
 # ─── seleccionar_usuario <titulo> ────────────────────────────────────────────
 # Lista usuarios con UID >= 1000 usando gum choose.
 # Retorna el nombre seleccionado en stdout. Retorna 1 si cancela o no hay usuarios.
 seleccionar_usuario() {
     local titulo="${1:-Selecciona un usuario:}"
-    local usuarios
+    local usuarios seleccion
 
     usuarios=$(awk -F: '$3 >= 1000 && $3 < 65534 {print $1}' /etc/passwd)
 
@@ -115,7 +160,14 @@ seleccionar_usuario() {
         return 1
     fi
 
-    echo "$usuarios" | gum choose --header "$titulo" --cursor "▸ "
+    if ui_interactiva; then
+        echo "$usuarios" | gum choose --header "$titulo" --cursor "▸ "
+        return $?
+    fi
+
+    read -rp "$titulo " seleccion || return 1
+    [[ -n "$seleccion" ]] || return 1
+    printf '%s\n' "$seleccion"
 }
 
 # ─── seleccionar_grupo <titulo> ──────────────────────────────────────────────
@@ -123,7 +175,7 @@ seleccionar_usuario() {
 # Retorna el nombre seleccionado en stdout. Retorna 1 si cancela o no hay grupos.
 seleccionar_grupo() {
     local titulo="${1:-Selecciona un grupo:}"
-    local grupos
+    local grupos seleccion
 
     grupos=$(awk -F: '$3 >= 1000 && $3 < 65534 {print $1}' /etc/group)
 
@@ -132,19 +184,38 @@ seleccionar_grupo() {
         return 1
     fi
 
-    echo "$grupos" | gum choose --header "$titulo" --cursor "▸ "
+    if ui_interactiva; then
+        echo "$grupos" | gum choose --header "$titulo" --cursor "▸ "
+        return $?
+    fi
+
+    read -rp "$titulo " seleccion || return 1
+    [[ -n "$seleccion" ]] || return 1
+    printf '%s\n' "$seleccion"
 }
 
 # ─── input_campo <placeholder> ───────────────────────────────────────────────
 # Campo de entrada de texto con gum input.
 # Retorna el texto ingresado en stdout.
 input_campo() {
-    gum input --placeholder "$1" --width 60
+    local valor
+
+    if ui_interactiva; then
+        gum input --placeholder "$1" --width 60
+        return $?
+    fi
+
+    read -rp "$1 " valor || return 1
+    printf '%s\n' "$valor"
 }
 
 # ─── confirmar_whiptail <pregunta> ───────────────────────────────────────────
 # Confirmación visual con gum confirm.
 # Retorna 0 si confirma (Yes), 1 si cancela (No).
 confirmar_whiptail() {
-    gum confirm "$1"
+    if ui_interactiva; then
+        gum confirm "$1"
+    else
+        confirmar_accion "$1"
+    fi
 }

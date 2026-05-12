@@ -63,16 +63,17 @@ main() {
     local opcion
 
     while true; do
-        opcion=$(whiptail --title "Administración de Redes — Menú Principal" \
-            --menu "Selecciona un módulo a gestionar:" 20 60 7 \
+        show_titulo
+        opcion=$(seleccionar_menu \
+            "Administración de Redes — Menú Principal" \
+            "Selecciona un módulo a gestionar:" \
             "1" "Usuarios" \
             "2" "Grupos" \
             "3" "Procesos de usuario" \
             "4" "Automatización de tareas" \
             "5" "Respaldo de información" \
             "6" "Seguridad / Monitoreo" \
-            "0" "Salir" \
-            3>&1 1>&2 2>&3)
+            "0" "Salir")
 
         # Si el usuario presiona ESC o Cancelar, salimos limpiamente
         if [[ -z "$opcion" || "$opcion" == "0" ]]; then

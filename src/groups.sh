@@ -10,14 +10,16 @@
 menu_grupos() {
     local opcion
     while true; do
-        opcion=$(whiptail --title "Gestión de Grupos" \
-            --menu "Selecciona una opción:" 16 60 5 \
+        clear
+        print_header "Gestión de Grupos"
+        opcion=$(seleccionar_menu \
+            "Gestión de Grupos" \
+            "Selecciona una opción:" \
             "1" "Alta de grupo" \
             "2" "Baja de grupo" \
             "3" "Consulta de grupo" \
             "4" "Modificaciones de grupo" \
-            "0" "Volver al menú principal" \
-            3>&1 1>&2 2>&3)
+            "0" "Volver al menú principal")
 
         [[ -z "$opcion" || "$opcion" == "0" ]] && return
 
@@ -147,14 +149,16 @@ grupo_modificar() {
     [[ -z "$grupo" ]] && return 0
 
     while true; do
-        opcion=$(whiptail --title "Modificar Grupo: $grupo" \
-            --menu "Selecciona una opción:" 16 60 5 \
+        clear
+        print_header "Modificar Grupo: $grupo"
+        opcion=$(seleccionar_menu \
+            "Modificar Grupo: $grupo" \
+            "Selecciona una opción:" \
             "1" "Renombrar grupo" \
             "2" "Agregar miembro al grupo" \
             "3" "Quitar miembro del grupo" \
             "4" "Reemplazar lista completa de miembros" \
-            "0" "Volver" \
-            3>&1 1>&2 2>&3)
+            "0" "Volver")
 
         [[ -z "$opcion" || "$opcion" == "0" ]] && return
 
