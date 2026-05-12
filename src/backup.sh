@@ -56,7 +56,7 @@ respaldar_gzip() {
     local destino
 
     # Solicitar carpeta origen
-    origen=$(input_campo "Carpeta origen (ej: /home/usuario):")
+    origen=$(seleccionar_directorio "Selecciona la carpeta a respaldar:")
 
     if [[ -z "$origen" ]]; then
         msg_err "La ruta de origen no puede estar vacía."
@@ -72,7 +72,7 @@ respaldar_gzip() {
     fi
 
     # Solicitar carpeta destino
-    destino=$(input_campo "Ruta de destino (ej: /backups):")
+    destino=$(seleccionar_directorio "Selecciona la carpeta de destino:")
 
     if [[ -z "$destino" ]]; then
         msg_err "La ruta de destino no puede estar vacía."
@@ -154,7 +154,7 @@ respaldar_bzip2() {
     local destino
 
     # Solicitar carpeta origen
-    origen=$(input_campo "Carpeta origen (ej: /home/usuario):")
+    origen=$(seleccionar_directorio "Selecciona la carpeta a respaldar:")
 
     if [[ -z "$origen" ]]; then
         msg_err "La ruta de origen no puede estar vacía."
@@ -170,7 +170,7 @@ respaldar_bzip2() {
     fi
 
     # Solicitar carpeta destino
-    destino=$(input_campo "Ruta de destino (ej: /backups):")
+    destino=$(seleccionar_directorio "Selecciona la carpeta de destino:")
 
     if [[ -z "$destino" ]]; then
         msg_err "La ruta de destino no puede estar vacía."

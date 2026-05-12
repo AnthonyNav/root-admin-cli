@@ -26,6 +26,10 @@ gpgkey=https://repo.charm.sh/yum/gpg.key' | tee /etc/yum.repos.d/charm.repo >/de
     if ! command -v figlet &>/dev/null; then
         dnf install -y figlet >/dev/null 2>&1
     fi
+    if ! command -v fzf &>/dev/null; then
+        dnf install -y fzf >/dev/null 2>&1 && \
+            echo "fzf instalado." || echo "Error instalando fzf."
+    fi
 }
 
 # ─── Título visual del sistema ────────────────────────────────────────────────

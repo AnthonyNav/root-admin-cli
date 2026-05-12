@@ -219,3 +219,39 @@ confirmar_whiptail() {
         confirmar_accion "$1"
     fi
 }
+
+# ─── seleccionar_directorio <titulo> ─────────────────────────────────────────
+# Selector visual de directorios con fzf + preview, o ingreso manual.
+# Retorna la ruta seleccionada en stdout. Retorna 1 si cancela.
+seleccionar_directorio() {
+    local titulo="${1:-Selecciona un directorio:}"
+    local modo
+
+    modo=$(gum choose \
+        --header "¿Cómo deseas seleccionar la ruta?" \
+        --cursor "▸ " \
+        "Explorar directorios visualmente (fzf)" \
+        "Escribir la ruta manualmente")
+
+    [[ -z "$modo" ]] && return 1
+
+    case "$modo" in
+        "Explorar directorios visualmente (fzf)")
+            if ! command -v fzf &>/dev/null; then
+                msg_err "fzf no instalado. Usa la opción manual o: sudo dnf install fzf"
+                return 1
+            fi
+            find /home /root /etc /var /tmp /srv /opt \
+                 -maxdepth 5 -type d 2>/dev/null | \
+            fzf --header "$titulo" \
+                --preview 'echo "Contenido:" && ls -la {} 2>/dev/null | head -20' \
+                --preview-window=right:50% \
+                --prompt "▸ " \
+                --pointer "▸" \
+                --border rounded
+            ;;
+        "Escribir la ruta manualmente")
+            input_campo "$titulo"
+            ;;
+    esac
+}

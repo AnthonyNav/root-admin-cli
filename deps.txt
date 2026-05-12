@@ -22,3 +22,4 @@ bash
 # gum: instalado via https://repo.charm.sh/yum/ (no disponible en repos base)
 # figlet: disponible via dnf install figlet
 figlet
+fzf
