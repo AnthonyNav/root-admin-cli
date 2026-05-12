@@ -115,32 +115,38 @@ ui_interactiva() {
 seleccionar_menu() {
     local titulo="$1"
     local prompt="$2"
-    local seleccion opcion clave descripcion
+    local seleccion opcion clave descripcion i
+    local -a claves descripciones
     shift 2 || return 1
 
     if (( $# == 0 || $# % 2 != 0 )); then
         return 1
     fi
 
+    while (( $# >= 2 )); do
+        claves+=("$1")
+        descripciones+=("$2")
+        shift 2
+    done
+
     if ui_interactiva; then
-        while (( $# >= 2 )); do
-            clave="$1"
-            descripcion="$2"
-            printf '%s\t%s\n' "$clave" "$descripcion"
-            shift 2
-        done | gum choose --header "$titulo"$'\n'"$prompt" --cursor "▸ " | {
-            IFS=$'\t' read -r seleccion _
-            [[ -n "$seleccion" ]] || return 1
-            printf '%s\n' "$seleccion"
-        }
-        return ${PIPESTATUS[1]}
+        seleccion=$(printf '%s\n' "${descripciones[@]}" | \
+            gum choose --header "$titulo"$'\n'"$prompt" --cursor "▸ ") || return 1
+
+        for i in "${!descripciones[@]}"; do
+            if [[ "${descripciones[$i]}" == "$seleccion" ]]; then
+                printf '%s\n' "${claves[$i]}"
+                return 0
+            fi
+        done
+
+        return 1
     fi
 
     echo "$titulo" >&2
     echo "$prompt" >&2
-    while (( $# >= 2 )); do
-        printf '  [%s] %s\n' "$1" "$2" >&2
-        shift 2
+    for i in "${!claves[@]}"; do
+        printf '  [%s] %s\n' "${claves[$i]}" "${descripciones[$i]}" >&2
     done
     read -rp "Opción: " opcion || return 1
     printf '%s\n' "$opcion"
