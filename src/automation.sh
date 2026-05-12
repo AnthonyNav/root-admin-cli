@@ -107,25 +107,63 @@ automatizar_at() {
     pausar
 }
 
+# ─── Interpretación básica de frecuencia cron ─────────────────────────────────
+# Convierte una expresión cron a lenguaje natural básico.
+interpretar_frecuencia() {
+    local expr="$1"
+    case "$expr" in
+        "* * * * *")    echo "Cada minuto" ;;
+        "0 * * * *")    echo "Cada hora (al minuto 0)" ;;
+        "0 0 * * *")    echo "Diariamente a medianoche" ;;
+        "0 0 * * 0")    echo "Semanalmente (domingos a medianoche)" ;;
+        "0 0 * * 1")    echo "Semanalmente (lunes a medianoche)" ;;
+        "0 0 1 * *")    echo "El 1ro de cada mes a medianoche" ;;
+        "0 8 * * 1-5")  echo "Lunes a viernes a las 08:00" ;;
+        *)               echo "Personalizado" ;;
+    esac
+}
+
 # ==========================================
 # 4. Función: listar_cron
 # ==========================================
 listar_cron() {
-    echo -e "\n${CYAN}--- Tareas Cron Actuales ---${NC}"
-    
-    # Si crontab -l devuelve un código distinto de 0, significa que no hay crontab para el usuario
-    if crontab -l >/dev/null 2>&1; then
-        local output
-        output=$(crontab -l)
-        if [ -z "$output" ]; then
-            msg_warn "El crontab está vacío. No hay tareas recurrentes configuradas."
-        else
-            echo ""
-            echo "$output"
-        fi
-    else
-        msg_warn "No hay tareas recurrentes configuradas (no existe un crontab para este usuario)."
+    print_header "Tareas Cron Actuales"
+
+    if ! crontab -l >/dev/null 2>&1; then
+        msg_warn "No hay tareas recurrentes configuradas."
+        pausar
+        return
     fi
+
+    local output
+    output=$(crontab -l 2>/dev/null | grep -v '^#' | grep -v '^$')
+
+    if [[ -z "$output" ]]; then
+        msg_warn "El crontab está vacío. No hay tareas recurrentes configuradas."
+        pausar
+        return
+    fi
+
+    echo ""
+    # Encabezado de columnas
+    gum style --bold --foreground 6 \
+        "  MIN    HORA   DÍA    MES    D.SEM  COMANDO"
+    echo -e "\033[0;36m  ─────────────────────────────────────────────────────\033[0m"
+
+    # Mostrar cada tarea con interpretación
+    while IFS= read -r linea; do
+        local min hora dia mes dsem
+        read min hora dia mes dsem resto <<< "$linea"
+        local expresion="$min $hora $dia $mes $dsem"
+        local interpretacion
+        interpretacion=$(interpretar_frecuencia "$expresion")
+
+        printf "  %-6s %-6s %-6s %-6s %-6s %s\n" \
+            "$min" "$hora" "$dia" "$mes" "$dsem" "$resto"
+        gum style --foreground 8 "          ↳ $interpretacion"
+        echo ""
+    done <<< "$output"
+
     pausar
 }
 
