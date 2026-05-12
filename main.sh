@@ -30,10 +30,14 @@ gpgkey=https://repo.charm.sh/yum/gpg.key' | tee /etc/yum.repos.d/charm.repo >/de
 
 # ─── Título visual del sistema ────────────────────────────────────────────────
 show_titulo() {
+    # Maximizar ventana de terminal (xterm-compatible, funciona en GNOME Terminal)
+    printf '\e[9;1t'
+    sleep 0.1
     clear
     echo ""
-    figlet -f slant "Admin Redes" | gum style --foreground 6
-    gum style --foreground 8 "  Administración de Redes · AlmaLinux 9 · BUAP"
+    # Colorear figlet con ANSI directamente para preservar el alineamiento
+    echo -e "\033[0;36m$(figlet -f slant 'Admin Redes')\033[0m"
+    echo -e "\033[0;37m  Administración de Redes · AlmaLinux 9 · BUAP\033[0m"
     echo ""
 }
 
