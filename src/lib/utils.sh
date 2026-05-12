@@ -31,14 +31,18 @@ BOLD='\033[1m'
 NC='\033[0m'
 
 # ─── print_header <título> ────────────────────────────────────────────────────
-# Imprime un encabezado visual con separador.
+# Imprime un encabezado visual con bordes redondeados usando gum style.
 # Ejemplo de uso: print_header "Gestión de Usuarios"
 print_header() {
     local titulo="$1"
     echo ""
-    echo -e "${CYAN}${BOLD}╔══════════════════════════════════════════╗${NC}"
-    echo -e "${CYAN}${BOLD}  $titulo${NC}"
-    echo -e "${CYAN}${BOLD}╚══════════════════════════════════════════╝${NC}"
+    gum style \
+        --border rounded \
+        --border-foreground 6 \
+        --padding "0 2" \
+        --bold \
+        --foreground 6 \
+        "$titulo"
     echo ""
 }
 
@@ -97,43 +101,50 @@ pausar() {
 
 # ─── WHIPTAIL HELPERS (Correcciones PR #1) ────────────────────────────────────
 
-# ─── seleccionar_usuario <titulo_ventana> ─────────────────────────────────────
+# ─── seleccionar_usuario <titulo> ────────────────────────────────────────────
+# Lista usuarios con UID >= 1000 usando gum choose.
+# Retorna el nombre seleccionado en stdout. Retorna 1 si cancela o no hay usuarios.
 seleccionar_usuario() {
-    local lista arr
-    # Filtra usuarios con UID >= 1000 y < 65534 (ignora nobody)
-    lista=$(awk -F: '$3 >= 1000 && $3 < 65534 {print $1, $3}' /etc/passwd)
-    
-    if [[ -z "$lista" ]]; then
-        whiptail --title "Aviso" --msgbox "No hay usuarios disponibles (UID >= 1000)." 8 50
+    local titulo="${1:-Selecciona un usuario:}"
+    local usuarios
+
+    usuarios=$(awk -F: '$3 >= 1000 && $3 < 65534 {print $1}' /etc/passwd)
+
+    if [[ -z "$usuarios" ]]; then
+        msg_warn "No hay usuarios disponibles (UID >= 1000)."
         return 1
     fi
-    
-    arr=($lista)
-    # 3>&1 1>&2 2>&3 intercambia los descriptores para capturar la salida
-    whiptail --title "Seleccionar Usuario" --menu "$1" 15 50 8 "${arr[@]}" 3>&1 1>&2 2>&3
+
+    echo "$usuarios" | gum choose --header "$titulo" --cursor "▸ "
 }
 
-# ─── seleccionar_grupo <titulo_ventana> ───────────────────────────────────────
+# ─── seleccionar_grupo <titulo> ──────────────────────────────────────────────
+# Lista grupos con GID >= 1000 usando gum choose.
+# Retorna el nombre seleccionado en stdout. Retorna 1 si cancela o no hay grupos.
 seleccionar_grupo() {
-    local lista arr
-    # Filtra grupos con GID >= 1000 y < 65534
-    lista=$(awk -F: '$3 >= 1000 && $3 < 65534 {print $1, $3}' /etc/group)
-    
-    if [[ -z "$lista" ]]; then
-        whiptail --title "Aviso" --msgbox "No hay grupos disponibles (GID >= 1000)." 8 50
+    local titulo="${1:-Selecciona un grupo:}"
+    local grupos
+
+    grupos=$(awk -F: '$3 >= 1000 && $3 < 65534 {print $1}' /etc/group)
+
+    if [[ -z "$grupos" ]]; then
+        msg_warn "No hay grupos disponibles (GID >= 1000)."
         return 1
     fi
-    
-    arr=($lista)
-    whiptail --title "Seleccionar Grupo" --menu "$1" 15 50 8 "${arr[@]}" 3>&1 1>&2 2>&3
+
+    echo "$grupos" | gum choose --header "$titulo" --cursor "▸ "
 }
 
-# ─── input_campo <mensaje> ────────────────────────────────────────────────────
+# ─── input_campo <placeholder> ───────────────────────────────────────────────
+# Campo de entrada de texto con gum input.
+# Retorna el texto ingresado en stdout.
 input_campo() {
-    whiptail --title "Entrada requerida" --inputbox "$1" 8 50 3>&1 1>&2 2>&3
+    gum input --placeholder "$1" --width 60
 }
 
-# ─── confirmar_whiptail <pregunta> ────────────────────────────────────────────
+# ─── confirmar_whiptail <pregunta> ───────────────────────────────────────────
+# Confirmación visual con gum confirm.
+# Retorna 0 si confirma (Yes), 1 si cancela (No).
 confirmar_whiptail() {
-    whiptail --title "Confirmación" --yesno "$1" 8 50
+    gum confirm "$1"
 }
