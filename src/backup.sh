@@ -159,6 +159,12 @@ respaldar_bzip2() {
     # Solicitar carpeta origen
     read -rp "Carpeta origen: " origen
 
+    if [[ -z "$origen" ]]; then
+        msg_err "La ruta de origen no puede estar vacía."
+        pausar
+        return
+    fi
+
     # Validar existencia de carpeta origen
     if [[ ! -d "$origen" ]]; then
         msg_err "La carpeta '$origen' no existe."
@@ -168,6 +174,12 @@ respaldar_bzip2() {
 
     # Solicitar carpeta destino
     read -rp "Ruta destino: " destino
+
+    if [[ -z "$destino" ]]; then
+        msg_err "La ruta de destino no puede estar vacía."
+        pausar
+        return
+    fi
 
     # Verificar si la carpeta destino existe
     if [[ ! -d "$destino" ]]; then
