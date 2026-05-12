@@ -60,7 +60,14 @@ abrir_nagios() {
 
     if command -v xdg-open >/dev/null 2>&1; then
         msg_ok "Intentando abrir Nagios en el navegador..."
-        xdg-open "$url" >/dev/null 2>&1 &
+
+        # Si corremos como root vía sudo, abrir el navegador como el usuario original
+        # para que tenga acceso al display gráfico
+        if [[ -n "$SUDO_USER" && "$SUDO_USER" != "root" ]]; then
+            sudo -u "$SUDO_USER" xdg-open "$url" >/dev/null 2>&1 &
+        else
+            xdg-open "$url" >/dev/null 2>&1 &
+        fi
     else
         msg_warn "xdg-open no disponible. Abre manualmente: $url"
     fi
