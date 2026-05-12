@@ -99,7 +99,7 @@ pausar() {
     echo ""
 }
 
-# ─── WHIPTAIL HELPERS (Correcciones PR #1) ────────────────────────────────────
+# ─── UI HELPERS (Correcciones PR #1) ──────────────────────────────────────────
 
 # ─── seleccionar_usuario <titulo> ────────────────────────────────────────────
 # Lista usuarios con UID >= 1000 usando gum choose.

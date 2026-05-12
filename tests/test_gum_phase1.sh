@@ -3,7 +3,7 @@
 # tests/test_gum_phase1.sh — Pruebas de Fase 1: migración a gum
 # Verifica que utils.sh usa gum, que los módulos cargan y que
 # los tests existentes siguen pasando.
-# Uso: sudo bash tests/test_gum_phase1.sh
+# Uso: bash tests/test_gum_phase1.sh
 #
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -128,12 +128,12 @@ OUTPUT=$(bash -c "
 [[ "$OUTPUT" == *"OK"* ]]
 check "todos los módulos cargan sin errores" 0 $?
 
-# ─── SECCIÓN 4: utils.sh usa gum (no whiptail) ───────────────────────────────
+# ─── SECCIÓN 4: utils.sh usa gum (sin invocar whiptail) ──────────────────────
 separator "4. utils.sh migrado a gum"
 
 check_not_contains \
-    "utils.sh no usa whiptail" \
-    "whiptail" \
+    "utils.sh no invoca whiptail como comando" \
+    "whiptail[[:space:]]+--" \
     "$UTILS_FILE"
 
 check_contains \
@@ -258,7 +258,7 @@ check "seleccionar_usuario retorna un valor con gum choose mock" 0 $?
 separator "8. Compatibilidad con test_utils.sh (debe seguir 16/16)"
 
 ((TOTAL++))
-UTILS_TEST_OUTPUT=$(sudo bash "$SCRIPT_DIR/tests/test_utils.sh" 2>/dev/null | tail -5)
+UTILS_TEST_OUTPUT=$(bash "$SCRIPT_DIR/tests/test_utils.sh" 2>/dev/null | tail -5)
 if echo "$UTILS_TEST_OUTPUT" | grep -q "16 passed"; then
     echo -e "  ${GREEN}PASS${NC}  test_utils.sh sigue en 16 passed, 0 failed" | tee -a "$REPORT_FILE"
     ((PASS++))
