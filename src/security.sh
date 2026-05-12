@@ -107,32 +107,33 @@ ejecutar_nmap() {
         return
     fi
 
-    tipo=$(gum choose \
-        --header "Tipo de escaneo para $objetivo:" \
-        --cursor "▸ " \
-        "Escaneo básico de puertos" \
-        "Detección de versiones (-sV)" \
-        "Escaneo de red local (-sn)" \
-        "← Volver")
+    while true; do
+        tipo=$(gum choose \
+            --header "Tipo de escaneo para: $objetivo" \
+            --cursor "▸ " \
+            "Escaneo básico de puertos" \
+            "Detección de versiones (-sV)" \
+            "Escaneo de red local (-sn)" \
+            "← Volver al menú anterior")
 
-    [[ -z "$tipo" || "$tipo" == "← Volver" ]] && return
+        [[ -z "$tipo" || "$tipo" == "← Volver al menú anterior" ]] && return
 
-    case "$tipo" in
-        "Escaneo básico de puertos")
-            msg_ok "Ejecutando: nmap $objetivo"
-            nmap "$objetivo"
-            ;;
-        "Detección de versiones (-sV)")
-            msg_ok "Ejecutando: nmap -sV $objetivo"
-            nmap -sV "$objetivo"
-            ;;
-        "Escaneo de red local (-sn)")
-            msg_ok "Ejecutando: nmap -sn $objetivo"
-            nmap -sn "$objetivo"
-            ;;
-    esac
-
-    pausar
+        case "$tipo" in
+            "Escaneo básico de puertos")
+                msg_ok "Ejecutando: nmap $objetivo"
+                nmap "$objetivo"
+                ;;
+            "Detección de versiones (-sV)")
+                msg_ok "Ejecutando: nmap -sV $objetivo"
+                nmap -sV "$objetivo"
+                ;;
+            "Escaneo de red local (-sn)")
+                msg_ok "Ejecutando: nmap -sn $objetivo"
+                nmap -sn "$objetivo"
+                ;;
+        esac
+        pausar
+    done
 }
 
 # ─── ejecutar_iftop ───────────────────────────────────────────────────────────
