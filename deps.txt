@@ -1,16 +1,14 @@
-# deps.txt — Dependencias del proyecto
-# Plataforma: AlmaLinux 9 (RHEL-compatible)
+# deps.txt - Project package baseline.
+# Target platform: AlmaLinux 9 (RHEL-compatible).
 #
-# Para verificar e instalar:
+# Validate the environment with:
 #   bash setup.sh
 #
-# Para instalar manualmente:
+# Install the listed packages manually with:
 #   sudo dnf install $(grep -v '^#' deps.txt | tr '\n' ' ')
 #
-# Nota: todos estos paquetes vienen preinstalados en una instalación
-# mínima de AlmaLinux 9. El setup.sh verifica que los comandos estén
-# disponibles sin necesidad de instalar nada adicional en la mayoría
-# de los casos.
+# Most of these packages are already present on a minimal AlmaLinux 9 install.
+# setup.sh validates command availability and reports anything missing.
 
 shadow-utils
 procps-ng
@@ -18,8 +16,8 @@ coreutils
 util-linux
 bash
 
-# Herramientas de interfaz de usuario (TUI)
-# gum: instalado via https://repo.charm.sh/yum/ (no disponible en repos base)
-# figlet: disponible via dnf install figlet
+# Terminal UI tools.
+# gum is installed from https://repo.charm.sh/yum/ by main.sh.
+# figlet and fzf are available through dnf.
 figlet
 fzf
