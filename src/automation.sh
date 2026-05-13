@@ -1,11 +1,11 @@
-#!/bin/bash
-# src/automation.sh - Módulo interactivo para gestionar tareas programadas (cron y at)
-# Autor: Administrador de Sistemas Linux
+#!/usr/bin/env bash
+# src/automation.sh - Task scheduling module built around cron and at.
 
-# ==========================================
-# 2. Función: automatizar_cron
-# ==========================================
+# Create a recurring cron task.
 automatizar_cron() {
+    local comando frecuencia opcion_freq
+    local temp_cron
+
     echo -e "\n${CYAN}--- Programar nueva tarea recurrente (CRON) ---${NC}"
     comando=$(input_campo "Introduce el comando o script a ejecutar:")
     if [ -z "$comando" ]; then
@@ -14,7 +14,6 @@ automatizar_cron() {
         return
     fi
     
-    local opcion_freq
     opcion_freq=$(gum choose \
         --header "¿Con qué frecuencia se ejecutará la tarea?" \
         --cursor "▸ " \
@@ -49,17 +48,16 @@ automatizar_cron() {
             ;;
     esac
 
-    local temp_cron
     temp_cron=$(mktemp)
-    
-    # Exportamos el crontab actual al archivo temporal, ignorando errores si no existe crontab
+
+    # Export the current crontab and ignore the error when no crontab exists yet.
     crontab -l > "$temp_cron" 2>/dev/null || true
-    
-    # Agregamos la nueva tarea al final del archivo temporal
+
+    # Append the new task to the temporary crontab file.
     echo "$frecuencia $comando" >> "$temp_cron"
-    
-    if confirmar_whiptail "¿Confirmas la tarea cron?"; then
-        # Cargamos el nuevo crontab en el sistema
+
+    if confirm_ui "¿Confirmas la tarea cron?"; then
+        # Load the updated crontab into the system.
         if crontab "$temp_cron" 2>/dev/null; then
             msg_ok "¡Tarea cron agregada exitosamente!"
         else
@@ -68,16 +66,16 @@ automatizar_cron() {
     else
         msg_warn "Tarea cron cancelada."
     fi
-    
-    # Limpieza
+
+    # Always remove the temporary file before returning.
     rm -f "$temp_cron"
     pausar
 }
 
-# ==========================================
-# 3. Función: automatizar_at
-# ==========================================
+# Create a one-off task with at.
 automatizar_at() {
+    local comando tiempo
+
     echo -e "\n${CYAN}--- Programar nueva tarea puntual (AT) ---${NC}"
     comando=$(input_campo "Introduce el comando a ejecutar:")
     if [ -z "$comando" ]; then
@@ -94,8 +92,8 @@ automatizar_at() {
         return
     fi
 
-    if confirmar_whiptail "¿Confirmas la tarea puntual?"; then
-        # Programar la tarea enviando el comando por tubería (pipe) al comando 'at'
+    if confirm_ui "¿Confirmas la tarea puntual?"; then
+        # Feed the command to at through stdin so it gets scheduled immediately.
         if echo "$comando" | at "$tiempo" 2>/dev/null; then
             msg_ok "¡Tarea 'at' programada exitosamente!"
         else
@@ -107,8 +105,7 @@ automatizar_at() {
     pausar
 }
 
-# ─── Interpretación básica de frecuencia cron ─────────────────────────────────
-# Convierte una expresión cron a lenguaje natural básico.
+# Convert a few common cron expressions into plain-language labels.
 interpretar_frecuencia() {
     local expr="$1"
     case "$expr" in
@@ -123,9 +120,7 @@ interpretar_frecuencia() {
     esac
 }
 
-# ==========================================
-# 4. Función: listar_cron
-# ==========================================
+# Print the active cron entries with headers and lightweight explanations.
 listar_cron() {
     print_header "Tareas Cron Actuales"
 
@@ -145,12 +140,12 @@ listar_cron() {
     fi
 
     echo ""
-    # Encabezado de columnas
+    # Print a simple table header for the raw cron fields.
     gum style --bold --foreground 6 \
         "  MIN    HORA   DÍA    MES    D.SEM  COMANDO"
     echo -e "\033[0;36m  ─────────────────────────────────────────────────────\033[0m"
 
-    # Mostrar cada tarea con interpretación
+    # Show each task followed by a plain-language interpretation.
     while IFS= read -r linea; do
         local min hora dia mes dsem
         read min hora dia mes dsem resto <<< "$linea"
@@ -167,16 +162,13 @@ listar_cron() {
     pausar
 }
 
-# ==========================================
-# 5. Función: listar_at
-# ==========================================
+# Print the at queue as returned by atq.
 listar_at() {
     echo -e "\n${CYAN}--- Tareas Puntuales Programadas (AT) ---${NC}"
-    
-    # El comando atq lista la cola de trabajos programados
+
     local output
     output=$(atq 2>/dev/null)
-    
+
     if [ -z "$output" ]; then
         msg_warn "La cola de tareas puntuales está vacía."
     else
@@ -186,12 +178,10 @@ listar_at() {
     pausar
 }
 
-# ==========================================
-# 1. Función: menu_automatizacion
-# ==========================================
+# Main menu for the scheduling module.
 menu_automatizacion() {
     local opcion
-    # Ciclo infinito del menú
+
     while true; do
         clear
         print_header "Gestión de Automatización"

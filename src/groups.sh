@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
 #
-# src/groups.sh — Módulo de gestión de grupos
-# Plataforma: AlmaLinux 9  |  Bash 5.0+
-#
-# Autor del módulo: Imanol (PR #4 · feat/part1-corrections)
-#
+# src/groups.sh - Group management module.
 
-# ─── menu_grupos ─────────────────────────────────────────────────────────────
+# Main menu for group operations.
 menu_grupos() {
     local opcion
     while true; do
@@ -33,7 +29,7 @@ menu_grupos() {
     done
 }
 
-# ─── grupo_alta ───────────────────────────────────────────────────────────────
+# Create a new group and optionally seed its member list.
 grupo_alta() {
     print_header "Alta de Grupo"
 
@@ -42,26 +38,25 @@ grupo_alta() {
     grupo=$(input_campo "Nombre del nuevo grupo:")
     [[ -z "$grupo" ]] && return 0
 
-    # Verificar si ya existe
+    # Reject duplicate group names early.
     if grupo_existe "$grupo"; then
         msg_err "El grupo '$grupo' ya existe."
         pausar
         return
     fi
 
-    # Confirmar acción
-    if ! confirmar_whiptail "¿Deseas crear el grupo '$grupo'?"; then
+    # Confirm the creation request before running groupadd.
+    if ! confirm_ui "¿Deseas crear el grupo '$grupo'?"; then
         msg_warn "Operación cancelada."
         pausar
         return
     fi
 
-    # Crear grupo
+    # Create the group first, then optionally assign members.
     if groupadd "$grupo"; then
         msg_ok "Grupo '$grupo' creado correctamente."
 
-        # Miembros iniciales
-        if confirmar_whiptail "¿Deseas agregar miembros iniciales?"; then
+        if confirm_ui "¿Deseas agregar miembros iniciales?"; then
             lista=$(input_campo "Lista de usuarios separados por comas (user1,user2):")
             if [[ -z "$lista" ]]; then
                 msg_err "Lista inválida o vacía."
@@ -79,7 +74,7 @@ grupo_alta() {
     pausar
 }
 
-# ─── grupo_baja ───────────────────────────────────────────────────────────────
+# Delete an existing group.
 grupo_baja() {
     print_header "Baja de Grupo"
 
@@ -88,7 +83,7 @@ grupo_baja() {
     grupo=$(seleccionar_grupo "Selecciona el grupo a eliminar:")
     [[ -z "$grupo" ]] && return 0
 
-    if ! confirmar_whiptail "¿Deseas eliminar el grupo '$grupo'?"; then
+    if ! confirm_ui "¿Deseas eliminar el grupo '$grupo'?"; then
         msg_warn "Operación cancelada."
         pausar
         return
@@ -112,7 +107,7 @@ grupo_baja() {
     fi
 }
 
-# ─── grupo_consulta ──────────────────────────────────────────────────────────
+# Show group details, including GID and members.
 grupo_consulta() {
     print_header "Consulta de Grupo"
 
@@ -139,7 +134,7 @@ grupo_consulta() {
     pausar
 }
 
-# ─── grupo_modificar ─────────────────────────────────────────────────────────
+# Update the name or membership of an existing group.
 grupo_modificar() {
     local grupo opcion usuario nuevo_nombre lista
 

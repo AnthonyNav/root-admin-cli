@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 #
-# setup.sh — Verificador de dependencias
-# Plataforma objetivo: AlmaLinux 9
+# setup.sh - Environment validation script.
+# Target platform: AlmaLinux 9.
 #
-# Uso:
-#   bash setup.sh          → solo verifica
-#   sudo bash setup.sh     → verifica e instala si es root
+# Usage:
+#   bash setup.sh
+#   sudo bash setup.sh
 #
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPS_FILE="$SCRIPT_DIR/deps.txt"
 
-# Comandos requeridos por el proyecto y el paquete que los provee
+# Map required commands to the package that usually provides them.
 declare -A CMD_PKG=(
     [useradd]="shadow-utils"
     [userdel]="shadow-utils"
@@ -42,7 +42,7 @@ echo ""
 echo -e "${CYAN}=== Verificación de entorno — Admin de Redes ===${NC}"
 echo ""
 
-# ── 1. Sistema operativo ────────────────────────────────────────────────────
+# Check the operating system first.
 echo "--- Sistema operativo ---"
 if [[ -f /etc/almalinux-release ]]; then
     ALMA_VER=$(cat /etc/almalinux-release)
@@ -56,7 +56,7 @@ else
 fi
 echo ""
 
-# ── 2. Versión de Bash ──────────────────────────────────────────────────────
+# Validate the available Bash version.
 echo "--- Shell ---"
 BASH_MAJOR="${BASH_VERSINFO[0]}"
 BASH_MINOR="${BASH_VERSINFO[1]}"
@@ -68,7 +68,7 @@ else
 fi
 echo ""
 
-# ── 3. Comandos requeridos ──────────────────────────────────────────────────
+# Validate the commands expected by the project.
 echo "--- Comandos requeridos ---"
 for cmd in "${!CMD_PKG[@]}"; do
     if command -v "$cmd" &>/dev/null; then
@@ -81,7 +81,7 @@ for cmd in "${!CMD_PKG[@]}"; do
 done
 echo ""
 
-# ── 4. Resultado ────────────────────────────────────────────────────────────
+# Print the final result and offer package installation if needed.
 if (( ERRORS == 0 )); then
     ok "Entorno listo. Ejecuta: sudo bash main.sh"
     echo ""
@@ -91,7 +91,7 @@ fi
 err "$ERRORS problema(s) encontrado(s)."
 echo ""
 
-# Deduplicar paquetes faltantes
+# Remove duplicates before printing or installing package names.
 UNIQUE_PKGS=($(printf '%s\n' "${MISSING_PKGS[@]}" | sort -u))
 
 if [[ $EUID -eq 0 ]]; then

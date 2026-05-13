@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
-# src/users.sh - Modulo de gestion de usuarios
-# Rama: feat/part1-corrections
+# src/users.sh - User management module.
 
-# -----------------------------------------------------------------------------
-# Fallbacks por si el archivo se prueba de forma aislada.
-# -----------------------------------------------------------------------------
+# Fallback helpers for isolated execution during ad-hoc tests.
 if ! declare -F print_header >/dev/null 2>&1; then
     print_header() {
         echo "========================================"
@@ -19,7 +16,7 @@ if ! declare -F pausar >/dev/null 2>&1; then pausar() { echo ""; read -rp "Presi
 if ! declare -F confirmar_accion >/dev/null 2>&1; then confirmar_accion() { local resp; read -rp "$1 [s/N]: " resp; [[ "$resp" =~ ^[sS]$ ]]; }; fi
 if ! declare -F usuario_existe >/dev/null 2>&1; then usuario_existe() { getent passwd "$1" >/dev/null 2>&1; }; fi
 
-# Fallbacks de UI aislados
+# Fallback UI helpers for isolated execution.
 if ! declare -F seleccionar_menu >/dev/null 2>&1; then
     seleccionar_menu() {
         local _titulo="$1" _prompt="$2" opcion
@@ -36,11 +33,10 @@ if ! declare -F seleccionar_menu >/dev/null 2>&1; then
 fi
 if ! declare -F seleccionar_usuario >/dev/null 2>&1; then seleccionar_usuario() { read -rp "$1 " usr; echo "$usr"; }; fi
 if ! declare -F input_campo >/dev/null 2>&1; then input_campo() { read -rp "$1 " input; echo "$input"; }; fi
+if ! declare -F confirm_ui >/dev/null 2>&1; then confirm_ui() { confirmar_accion "$1"; }; fi
 if ! declare -F confirmar_whiptail >/dev/null 2>&1; then confirmar_whiptail() { confirmar_accion "$1"; }; fi
 
-# -----------------------------------------------------------------------------
-# Utilidades internas del modulo
-# -----------------------------------------------------------------------------
+# Internal module utilities.
 asegurar_root() {
     if [[ "$EUID" -ne 0 ]]; then
         msg_err "Esta opcion debe ejecutarse con permisos de root."
@@ -59,6 +55,7 @@ comando_requerido() {
     return 0
 }
 
+# Validate usernames against the project rules.
 validar_nombre_usuario() {
     local usuario="$1"
     if [[ -z "$usuario" ]]; then
@@ -86,10 +83,12 @@ validar_nombre_usuario() {
     return 0
 }
 
+# Return the numeric UID for a username, when available.
 uid_de_usuario() {
     id -u "$1" 2>/dev/null
 }
 
+# Return success when the user is a system account.
 es_usuario_sistema() {
     local usuario="$1"
     local uid
@@ -97,6 +96,7 @@ es_usuario_sistema() {
     [[ -n "$uid" && "$uid" -lt 1000 ]]
 }
 
+# Validate account expiration dates accepted by chage.
 validar_fecha_caducidad() {
     local fecha="$1"
     if [[ "$fecha" == "-1" ]]; then return 0; fi
@@ -111,6 +111,7 @@ validar_fecha_caducidad() {
     return 0
 }
 
+# Validate that a shell path exists and is allowed for the account.
 validar_shell() {
     local shell_usuario="$1"
     if [[ -z "$shell_usuario" ]]; then
@@ -127,16 +128,14 @@ validar_shell() {
     fi
     if [[ -f /etc/shells ]] && ! grep -qxF "$shell_usuario" /etc/shells; then
         msg_warn "La shell '$shell_usuario' no aparece en /etc/shells."
-        if ! confirmar_whiptail "Deseas usarla de todos modos?"; then
+        if ! confirm_ui "Deseas usarla de todos modos?"; then
             return 1
         fi
     fi
     return 0
 }
 
-# -----------------------------------------------------------------------------
-# menu_usuarios
-# -----------------------------------------------------------------------------
+# Main menu for user operations.
 menu_usuarios() {
     local opcion
     while true; do
@@ -162,9 +161,8 @@ menu_usuarios() {
         esac
     done
 }
-# -----------------------------------------------------------------------------
-# usuario_alta
-# -----------------------------------------------------------------------------
+
+# Create a new user account and request an initial password.
 usuario_alta() {
     local usuario
 
@@ -176,7 +174,7 @@ usuario_alta() {
     comando_requerido passwd || { pausar; return 1; }
 
     usuario=$(input_campo "Nombre del nuevo usuario:")
-    [[ -z "$usuario" ]] && return 0 # Usuario canceló o dejó en blanco
+    [[ -z "$usuario" ]] && return 0 # Cancelled input or empty value.
 
     if ! validar_nombre_usuario "$usuario"; then
         pausar
@@ -189,7 +187,7 @@ usuario_alta() {
         return 1
     fi
 
-    if ! confirmar_whiptail "¿Deseas crear el usuario '$usuario'?"; then
+    if ! confirm_ui "¿Deseas crear el usuario '$usuario'?"; then
         msg_warn "Operacion cancelada."
         pausar
         return 0
@@ -220,9 +218,7 @@ usuario_alta() {
     pausar
 }
 
-# -----------------------------------------------------------------------------
-# usuario_baja
-# -----------------------------------------------------------------------------
+# Delete an existing user account.
 usuario_baja() {
     local usuario
     local eliminar_home="no"
@@ -265,7 +261,7 @@ usuario_baja() {
         msg_warn "El usuario '$usuario' tiene procesos en ejecucion. userdel puede fallar."
     fi
 
-    if confirmar_whiptail "¿Deseas eliminar también el directorio home de '$usuario'?"; then
+    if confirm_ui "¿Deseas eliminar también el directorio home de '$usuario'?"; then
         eliminar_home="si"
     fi
 
@@ -276,7 +272,7 @@ usuario_baja() {
         msg_warn "No se eliminara su directorio home."
     fi
 
-    if ! confirmar_whiptail "¿Confirmas la eliminación del usuario '$usuario'?"; then
+    if ! confirm_ui "¿Confirmas la eliminación del usuario '$usuario'?"; then
         msg_warn "Operacion cancelada."
         pausar
         return 0
@@ -300,9 +296,7 @@ usuario_baja() {
     pausar
 }
 
-# -----------------------------------------------------------------------------
-# usuario_consulta
-# -----------------------------------------------------------------------------
+# Show user metadata, groups, password aging, and last login details.
 usuario_consulta() {
     local usuario
     local passwd_info
@@ -348,9 +342,7 @@ usuario_consulta() {
     pausar
 }
 
-# -----------------------------------------------------------------------------
-# usuario_modificar
-# -----------------------------------------------------------------------------
+# Modify account properties for an existing user.
 usuario_modificar() {
     local usuario opcion nueva_shell nuevo_home comentario fecha
 
@@ -411,7 +403,7 @@ usuario_modificar() {
                 elif [[ "$nuevo_home" == "/" ]]; then
                     msg_err "No puedes usar / como directorio home."
                 else
-                    if confirmar_whiptail "¿Mover contenido actual al nuevo home?"; then
+                    if confirm_ui "¿Mover contenido actual al nuevo home?"; then
                         if usermod -d "$nuevo_home" -m "$usuario"; then
                             msg_ok "Home cambiado y contenido movido a '$nuevo_home'."
                         else
@@ -428,7 +420,7 @@ usuario_modificar() {
                 pausar
                 ;;
             3)
-                if confirmar_whiptail "¿Deseas bloquear la cuenta '$usuario'?"; then
+                if confirm_ui "¿Deseas bloquear la cuenta '$usuario'?"; then
                     if usermod -L "$usuario"; then
                         msg_ok "Cuenta '$usuario' bloqueada."
                     else
@@ -440,7 +432,7 @@ usuario_modificar() {
                 pausar
                 ;;
             4)
-                if confirmar_whiptail "¿Deseas desbloquear la cuenta '$usuario'?"; then
+                if confirm_ui "¿Deseas desbloquear la cuenta '$usuario'?"; then
                     if usermod -U "$usuario"; then
                         msg_ok "Cuenta '$usuario' desbloqueada."
                     else
@@ -490,7 +482,7 @@ usuario_modificar() {
                 ;;
             8)
                 comando_requerido chage || { pausar; continue; }
-                if confirmar_whiptail "¿Forzar cambio de contrasena para '$usuario' en el proximo inicio?"; then
+                if confirm_ui "¿Forzar cambio de contrasena para '$usuario' en el proximo inicio?"; then
                     if chage -d 0 "$usuario"; then
                         msg_ok "Se forzara cambio de contrasena en el proximo inicio de sesion."
                     else

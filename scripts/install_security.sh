@@ -1,23 +1,17 @@
-#!/bin/bash
-# install_security.sh - Script de instalación y configuración de seguridad y monitoreo para AlmaLinux 9.7
-# Autor: Administrador de Sistemas
-# Descripción: Prepara un entorno defensivo instalando Nagios, Wireshark, Nmap y más.
+#!/usr/bin/env bash
+# install_security.sh - Install and configure security tooling for AlmaLinux 9.
 
-# Detener la ejecución en caso de error en cualquier comando (Fase 1 y 2)
+# Stop on unhandled errors during the installation flow.
 set -e
 
-# ==========================================
-# Definición de Colores para el Output
-# ==========================================
+# ANSI colors used by the installation output.
 RED='\033[0;31m'
 GREEN='\033[0;32m'
-TITLE_COLOR='\033[1;36m' # Azul claro / Cyan para mejor lectura
+TITLE_COLOR='\033[1;36m' # Cyan works well as a section title color.
 YELLOW='\033[1;33m'
-NC='\033[0m' # Sin color
+NC='\033[0m' # Reset color.
 
-# ==========================================
-# Funciones de Logging
-# ==========================================
+# Logging helpers.
 log_info() {
     echo -e "${GREEN}[INFO]${NC} $1"
 }
@@ -30,13 +24,11 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# ==========================================
-# Fase 1: Pre-requisitos y Comprobaciones
-# ==========================================
+# Run environment validation before installing packages.
 phase1_preflight() {
     echo -e "\n${TITLE_COLOR}=== FASE 1: Pre-requisitos y Comprobaciones de Seguridad ===${NC}"
-    
-    # 1. Verificar que el usuario es root
+
+    # 1. Require root privileges.
     log_info "Verificando privilegios de root..."
     if [ "$EUID" -ne 0 ]; then
         log_error "El script debe ejecutarse como root (sudo)."
@@ -44,7 +36,7 @@ phase1_preflight() {
     fi
     log_info "Usuario root verificado."
 
-    # 2. Verificar que el sistema operativo es AlmaLinux 9
+    # 2. Confirm that the host is AlmaLinux 9.
     log_info "Verificando la versión del Sistema Operativo..."
     if ! grep -qiE "AlmaLinux.*release 9" /etc/redhat-release 2>/dev/null; then
         log_error "El sistema operativo no es AlmaLinux 9. Abortando instalación."
@@ -52,7 +44,7 @@ phase1_preflight() {
     fi
     log_info "Sistema operativo $(cat /etc/redhat-release) verificado."
 
-    # 3. Verificar conectividad a internet de forma silenciosa
+    # 3. Check internet connectivity silently.
     log_info "Verificando conectividad a internet..."
     if ! ping -c 1 -W 3 8.8.8.8 >/dev/null 2>&1; then
         log_error "No hay conectividad a internet. Verifique la red y vuelva a intentar."
@@ -60,25 +52,25 @@ phase1_preflight() {
     fi
     log_info "Conectividad a internet exitosa."
 
-    # 4. Verificar si el puerto 80 ya está en uso y liberar
+    # 4. Free port 80 when another process is already using it.
     log_info "Verificando disponibilidad del puerto 80 (HTTP)..."
     if ss -tlnp | grep -q ':80 '; then
         log_warn "El puerto 80 está en uso. Intentando liberar el puerto automáticamente..."
-        
-        # Intentar detener el servicio httpd primero de forma limpia
+
+        # Stop httpd first when it is the current owner of the port.
         if systemctl is-active --quiet httpd 2>/dev/null; then
             systemctl stop httpd || true
         fi
-        
-        # Forzar el cierre de cualquier proceso restante en el puerto 80
+
+        # Force-kill any remaining process that still owns port 80.
         PIDS=$(ss -tlnp | grep ':80 ' | grep -Eo 'pid=[0-9]+' | cut -d= -f2 | sort -u)
         if [ -n "$PIDS" ]; then
             for pid in $PIDS; do
                 kill -9 $pid 2>/dev/null || true
             done
         fi
-        
-        # Verificar nuevamente si se logró liberar
+
+        # Confirm the port is now free before continuing.
         sleep 2
         if ss -tlnp | grep -q ':80 '; then
             log_error "No se pudo liberar el puerto 80 automáticamente. Abortando instalación."
@@ -89,7 +81,7 @@ phase1_preflight() {
         log_info "Puerto 80 disponible para uso."
     fi
 
-    # 5. Verificar repositorios CRB o EPEL
+    # 5. Detect whether CRB or EPEL already exists.
     log_info "Verificando estado de repositorios CRB y EPEL..."
     if dnf repolist 2>/dev/null | grep -qiE 'crb|epel'; then
         log_warn "Los repositorios CRB o EPEL ya se encuentran habilitados. Se asegurará su configuración en la Fase 2."
@@ -100,21 +92,19 @@ phase1_preflight() {
     log_info "Todas las comprobaciones de la Fase 1 pasaron con éxito."
 }
 
-# ==========================================
-# Fase 2: Instalación y Configuración
-# ==========================================
+# Install packages and perform the required service configuration.
 phase2_install() {
     echo -e "\n${TITLE_COLOR}=== FASE 2: Instalación y Configuración ===${NC}"
 
-    # 1. Habilitar el repositorio CRB
+    # 1. Enable the CRB repository.
     log_info "Habilitando repositorio CRB (Code Ready Builder)..."
     dnf config-manager --set-enabled crb
 
-    # 2. Instalar el repositorio EPEL
+    # 2. Install EPEL.
     log_info "Instalando el repositorio EPEL..."
     dnf install -y epel-release
 
-    # 3. Cambiar estado de SELinux a permissive
+    # 3. Set SELinux to permissive mode for the expected tooling.
     log_info "Configurando SELinux en modo permissive..."
     if [ -f /etc/selinux/config ]; then
         sed -i 's/^SELINUX=.*/SELINUX=permissive/g' /etc/selinux/config
@@ -123,16 +113,16 @@ phase2_install() {
         setenforce 0 || log_warn "No se pudo cambiar el estado de SELinux en caliente."
     fi
 
-    # 4. Instalar paquetes requeridos
+    # 4. Install all required packages in one transaction.
     log_info "Instalando paquetes: nagios, nagios-plugins-all, nrpe, nagios-plugins-nrpe, wireshark, nmap, iftop, at, cronie, httpd, httpd-tools..."
     dnf install -y nagios nagios-plugins-all nrpe nagios-plugins-nrpe wireshark nmap iftop at cronie httpd httpd-tools
 
-    # 5. Configurar autenticación web de Nagios
+    # 5. Configure the Nagios web credentials.
     log_info "Configurando autenticación para Nagios (httpd)..."
     echo -e "${TITLE_COLOR}=== CREACIÓN DE CREDENCIALES NAGIOS ===${NC}"
     echo -e "A continuación, se le pedirá de forma interactiva que asigne una contraseña para el usuario administrador '${GREEN}nagiosadmin${NC}'"
     
-    # Desactivamos momentáneamente 'set -e' en caso de que htpasswd no exista o falle la entrada
+    # Temporarily relax set -e to report htpasswd failures cleanly.
     set +e
     htpasswd -c /etc/nagios/passwd nagiosadmin
     if [ $? -ne 0 ]; then
@@ -141,11 +131,11 @@ phase2_install() {
     fi
     set -e
 
-    # 6. Habilitar y arrancar servicios
+    # 6. Enable and start the required services.
     log_info "Habilitando y arrancando servicios principales (httpd, nagios, crond, atd, nrpe)..."
     systemctl enable --now httpd nagios crond atd nrpe
 
-    # 7. Configurar firewalld
+    # 7. Open HTTP in firewalld when the service is available.
     log_info "Configurando excepciones en firewalld..."
     if systemctl is-active --quiet firewalld; then
         firewall-cmd --add-service=http --permanent
@@ -158,15 +148,13 @@ phase2_install() {
     log_info "La Fase 2 finalizó exitosamente."
 }
 
-# ==========================================
-# Fase 3: Pruebas y Verificación (Post-flight)
-# ==========================================
+# Run post-install verification checks and print the final summary.
 phase3_postflight() {
     echo -e "\n${TITLE_COLOR}=== FASE 3: Pruebas y Verificación (Post-flight checks) ===${NC}"
 
     local errores_encontrados=0
 
-    # 1. Comprobar servicios en estado active
+    # 1. Confirm that core services are active.
     log_info "Verificando el estado de los servicios..."
     for servicio in httpd nagios crond atd nrpe; do
         if systemctl is-active --quiet "$servicio"; then
@@ -177,9 +165,9 @@ phase3_postflight() {
         fi
     done
 
-    # 2. Curl a Nagios
+    # 2. Probe the Nagios HTTP endpoint locally.
     log_info "Realizando petición HTTP al portal de Nagios..."
-    # Se extrae únicamente el código HTTP devuelto
+    # Only keep the HTTP status code from the curl response.
     HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/nagios/ || true)
     
     if [ "$HTTP_CODE" = "401" ]; then
@@ -191,10 +179,10 @@ phase3_postflight() {
         errores_encontrados=$((errores_encontrados + 1))
     fi
 
-    # 3. Verificar crontab y atq
+    # 3. Verify that cron and at tools are callable.
     log_info "Verificando estado de utilidades del sistema (crontab, atq)..."
-    
-    # crontab -l devuelve código 1 si no hay crontab, así que lo manejamos para que no lo cuente como error falso
+
+    # Treat "no crontab for user" as a valid condition rather than a failure.
     if crontab -l >/dev/null 2>&1 || [ $? -eq 1 ]; then
         echo -e "  - Comando 'crontab': ${GREEN}Disponible y funcional${NC}"
     else
@@ -209,8 +197,7 @@ phase3_postflight() {
         errores_encontrados=$((errores_encontrados + 1))
     fi
 
-    # 4. Mostrar resumen visual
-    # Obtener IP de la máquina
+    # 4. Print a summary and discover the most useful local IP address.
     LOCAL_IP=$(ip -4 route get 8.8.8.8 2>/dev/null | awk '{print $7}' | head -n 1)
     [ -z "$LOCAL_IP" ] && LOCAL_IP=$(hostname -I | awk '{print $1}')
 
@@ -249,11 +236,9 @@ phase3_postflight() {
     echo -e "=======================================================\n"
 }
 
-# ==========================================
-# Ejecución Principal (Main)
-# ==========================================
+# Run all phases in order.
 main() {
-    # Dar permisos de ejecución a este script por si acaso
+    # Ensure the script remains executable after checkout or copy operations.
     chmod +x "$0" 2>/dev/null || true
 
     echo -e "${TITLE_COLOR}"
@@ -275,5 +260,5 @@ main() {
     phase3_postflight
 }
 
-# Llamada a la función principal
+# Entrypoint.
 main

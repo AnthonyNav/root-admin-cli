@@ -1,28 +1,8 @@
 #!/usr/bin/env bash
 #
-# src/backup.sh — Módulo de respaldo de información
-# Plataforma: AlmaLinux 9 | Bash 5.0+
-#
-# Autor del módulo: Imanol (PR P2-2 · feat/backup-module)
-#
-# Comandos del sistema que utilizarás:
-#   tar     → crear respaldos .tar.gz y .tar.bz2
-#   du      → mostrar tamaño del archivo generado
-#   mkdir   → crear directorios destino
-#   basename → obtener nombre de carpeta origen
-#   date    → generar timestamp automático
-#
-# Nota:
-# utils.sh ya fue cargado por main.sh.
-# Puedes usar directamente:
-#   print_header, msg_ok, msg_err, msg_warn,
-#   confirmar_accion y pausar
-#
+# src/backup.sh - Backup module for archive creation workflows.
 
-# ──────────────────────────────────────────────────────────────────────────────
-# menu_respaldo
-# Muestra el submenú de respaldos.
-# ──────────────────────────────────────────────────────────────────────────────
+# Main menu for the backup module.
 menu_respaldo() {
     local opcion
 
@@ -45,17 +25,14 @@ menu_respaldo() {
     done
 }
 
-# ──────────────────────────────────────────────────────────────────────────────
-# respaldar_gzip
-# Crea un respaldo comprimido en formato .tar.gz
-# ──────────────────────────────────────────────────────────────────────────────
+# Create a gzip-compressed backup archive.
 respaldar_gzip() {
     print_header "Respaldo con Gzip"
 
     local origen
     local destino
 
-    # Solicitar carpeta origen
+    # Ask for the source directory.
     origen=$(seleccionar_directorio "Selecciona la carpeta a respaldar:")
 
     if [[ -z "$origen" ]]; then
@@ -64,14 +41,14 @@ respaldar_gzip() {
         return
     fi
 
-    # Validar existencia de carpeta origen
+    # Ensure the source directory exists.
     if [[ ! -d "$origen" ]]; then
         msg_err "La carpeta '$origen' no existe."
         pausar
         return
     fi
 
-    # Solicitar carpeta destino
+    # Ask for the destination directory.
     destino=$(seleccionar_directorio "Selecciona la carpeta de destino:")
 
     if [[ -z "$destino" ]]; then
@@ -80,7 +57,7 @@ respaldar_gzip() {
         return
     fi
 
-    # Verificar si la carpeta destino existe
+    # Offer to create the destination directory when it is missing.
     if [[ ! -d "$destino" ]]; then
         msg_warn "La carpeta '$destino' no existe."
 
@@ -101,7 +78,7 @@ respaldar_gzip() {
         fi
     fi
 
-    # Verificar permisos de escritura
+    # Stop early when the destination is not writable.
     if [[ ! -w "$destino" ]]; then
         msg_err "Sin permisos de escritura en '$destino'."
         pausar
@@ -111,49 +88,42 @@ respaldar_gzip() {
     local nombre
     local tamano
 
-    # Generar nombre automático del respaldo
+    # Generate a timestamped archive name from the source directory.
     nombre="backup_$(basename "$origen")_$(date +%Y%m%d_%H%M%S).tar.gz"
 
-    # Crear respaldo comprimido
+    # Create the compressed archive in the destination directory.
     tar -czf "$destino/$nombre" -C "$(dirname "$origen")" "$(basename "$origen")"
 
-    # Verificar si tar falló
+    # Report tar failures explicitly.
     if [[ $? -ne 0 ]]; then
         msg_err "No se pudo crear el respaldo."
         pausar
         return
     fi
 
-    # Verificar que el archivo exista
+    # Guard against silent failures where the archive was not created.
     if [[ ! -f "$destino/$nombre" ]]; then
         msg_err "El archivo de respaldo no fue creado."
         pausar
         return
     fi
 
-    # Obtener tamaño del archivo
+    # Show the final archive size to the operator.
     tamano=$(du -sh "$destino/$nombre" | awk '{print $1}')
 
     msg_ok "Respaldo creado: $destino/$nombre (tamaño: $tamano)"
 
     pausar
-
-
-
-
 }
 
-# ──────────────────────────────────────────────────────────────────────────────
-# respaldar_bzip2
-# Crea un respaldo comprimido en formato .tar.bz2
-# ──────────────────────────────────────────────────────────────────────────────
+# Create a bzip2-compressed backup archive.
 respaldar_bzip2() {
     print_header "Respaldo con Bzip2"
 
     local origen
     local destino
 
-    # Solicitar carpeta origen
+    # Ask for the source directory.
     origen=$(seleccionar_directorio "Selecciona la carpeta a respaldar:")
 
     if [[ -z "$origen" ]]; then
@@ -162,14 +132,14 @@ respaldar_bzip2() {
         return
     fi
 
-    # Validar existencia de carpeta origen
+    # Ensure the source directory exists.
     if [[ ! -d "$origen" ]]; then
         msg_err "La carpeta '$origen' no existe."
         pausar
         return
     fi
 
-    # Solicitar carpeta destino
+    # Ask for the destination directory.
     destino=$(seleccionar_directorio "Selecciona la carpeta de destino:")
 
     if [[ -z "$destino" ]]; then
@@ -178,7 +148,7 @@ respaldar_bzip2() {
         return
     fi
 
-    # Verificar si la carpeta destino existe
+    # Offer to create the destination directory when it is missing.
     if [[ ! -d "$destino" ]]; then
         msg_warn "La carpeta '$destino' no existe."
 
@@ -199,7 +169,7 @@ respaldar_bzip2() {
         fi
     fi
 
-    # Verificar permisos de escritura
+    # Stop early when the destination is not writable.
     if [[ ! -w "$destino" ]]; then
         msg_err "Sin permisos de escritura en '$destino'."
         pausar
@@ -209,27 +179,27 @@ respaldar_bzip2() {
     local nombre
     local tamano
 
-    # Generar nombre automático del respaldo
+    # Generate a timestamped archive name from the source directory.
     nombre="backup_$(basename "$origen")_$(date +%Y%m%d_%H%M%S).tar.bz2"
 
-    # Crear respaldo comprimido
+    # Create the compressed archive in the destination directory.
     tar -cjf "$destino/$nombre" -C "$(dirname "$origen")" "$(basename "$origen")"
 
-    # Verificar si tar falló
+    # Report tar failures explicitly.
     if [[ $? -ne 0 ]]; then
         msg_err "No se pudo crear el respaldo."
         pausar
         return
     fi
 
-    # Verificar que el archivo exista
+    # Guard against silent failures where the archive was not created.
     if [[ ! -f "$destino/$nombre" ]]; then
         msg_err "El archivo de respaldo no fue creado."
         pausar
         return
     fi
 
-    # Obtener tamaño del archivo
+    # Show the final archive size to the operator.
     tamano=$(du -sh "$destino/$nombre" | awk '{print $1}')
 
     msg_ok "Respaldo creado: $destino/$nombre (tamaño: $tamano)"

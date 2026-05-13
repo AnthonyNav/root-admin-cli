@@ -1,28 +1,10 @@
 #!/usr/bin/env bash
 #
-# src/lib/utils.sh — Helpers compartidos del proyecto
-# Plataforma: AlmaLinux 9  |  Bash 5.0+
-#
-# Autor del módulo: Anthony (PR #1 · feat/utils-lib)
-#
-# NOTA PARA EL EQUIPO:
-#   Este archivo es la RUTA CRÍTICA del proyecto. Los módulos
-#   users.sh, groups.sh y processes.sh dependen de las funciones
-#   aquí definidas. Por favor finaliza tu implementación antes
-#   del lunes por la mañana.
-#
-# Funciones públicas que DEBES implementar (no cambiar los nombres):
-#   print_header <título>
-#   msg_ok       <mensaje>
-#   msg_err      <mensaje>
-#   msg_warn     <mensaje>
-#   confirmar_accion <pregunta>  → retorna 0 (sí) o 1 (no)
-#   usuario_existe   <nombre>    → retorna 0 (existe) o 1 (no)
-#   grupo_existe     <nombre>    → retorna 0 (existe) o 1 (no)
-#   pausar                       → espera Enter del usuario
+# src/lib/utils.sh - Shared UI and validation helpers.
+# Target platform: AlmaLinux 9 with Bash 5.0 or newer.
 #
 
-# ─── Colores ──────────────────────────────────────────────────────────────────
+# ANSI color constants used by text-based status messages.
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -30,9 +12,7 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-# ─── print_header <título> ────────────────────────────────────────────────────
-# Imprime un encabezado visual con bordes redondeados usando gum style.
-# Ejemplo de uso: print_header "Gestión de Usuarios"
+# Print a consistent section header with gum styling.
 print_header() {
     local titulo="$1"
     echo ""
@@ -46,26 +26,22 @@ print_header() {
     echo ""
 }
 
-# ─── msg_ok <mensaje> ─────────────────────────────────────────────────────────
-# Imprime un mensaje de éxito en verde.
+# Print a success message.
 msg_ok() {
     echo -e "${GREEN}[OK]${NC} $1"
 }
 
-# ─── msg_err <mensaje> ────────────────────────────────────────────────────────
-# Imprime un mensaje de error en rojo (a stderr).
+# Print an error message to stderr.
 msg_err() {
     echo -e "${RED}[ERROR]${NC} $1" >&2
 }
 
-# ─── msg_warn <mensaje> ───────────────────────────────────────────────────────
-# Imprime un aviso en amarillo.
+# Print a warning message.
 msg_warn() {
     echo -e "${YELLOW}[AVISO]${NC} $1"
 }
 
-# ─── confirmar_accion <pregunta> ──────────────────────────────────────────────
-# Solicita confirmación al usuario.
+# Ask for a simple yes/no confirmation using standard input.
 confirmar_accion() {
     local pregunta="$1"
     local resp
@@ -73,15 +49,13 @@ confirmar_accion() {
     [[ "$resp" =~ ^[sS]$ ]]
 }
 
-# ─── usuario_existe <nombre_usuario> ─────────────────────────────────────────
-# Verifica si un usuario existe en el sistema.
+# Return success when the given user exists on the system.
 usuario_existe() {
     [[ -z "$1" ]] && return 1
     id "$1" &>/dev/null
 }
 
-# ─── grupo_existe <nombre_grupo> ─────────────────────────────────────────────
-# Verifica si un grupo existe en el sistema.
+# Return success when the given group exists on the system.
 grupo_existe() {
     [[ -z "$1" ]] && return 1
     if getent group "$1" &>/dev/null; then
@@ -91,31 +65,28 @@ grupo_existe() {
     fi
 }
 
-# ─── pausar ───────────────────────────────────────────────────────────────────
-# Pausa la ejecución hasta que el usuario presione Enter.
+# Pause execution until the operator presses Enter.
 pausar() {
     echo ""
     read -rp "  Presiona Enter para continuar..."
     echo ""
 }
 
-# ─── UI HELPERS (Correcciones PR #1) ──────────────────────────────────────────
-
-# ─── ui_interactiva ───────────────────────────────────────────────────────────
-# Indica si la terminal permite abrir prompts interactivos con gum.
+# Return success when gum can safely open interactive prompts.
 ui_interactiva() {
     command -v gum &>/dev/null &&
         [[ -r /dev/tty && -w /dev/tty ]] &&
         [[ -t 0 || -t 1 || -t 2 ]]
 }
 
-# ─── seleccionar_menu <titulo> <prompt> <clave> <desc>... ───────────────────
-# Muestra un menú con gum choose y retorna la clave elegida en stdout.
-# Si no hay TTY interactiva, cae a un prompt simple con read.
+# Render a menu and return the selected key on stdout.
+# In interactive mode gum only shows labels, while this helper maps the label
+# back to its key so existing case statements remain unchanged.
+# In non-interactive mode it falls back to a plain read-based prompt.
 seleccionar_menu() {
     local titulo="$1"
     local prompt="$2"
-    local seleccion opcion clave descripcion i
+    local seleccion opcion i
     local -a claves descripciones
     shift 2 || return 1
 
@@ -152,9 +123,8 @@ seleccionar_menu() {
     printf '%s\n' "$opcion"
 }
 
-# ─── seleccionar_usuario <titulo> ────────────────────────────────────────────
-# Lista usuarios con UID >= 1000 usando gum choose.
-# Retorna el nombre seleccionado en stdout. Retorna 1 si cancela o no hay usuarios.
+# List non-system users and return the selected username.
+# Return 1 when the list is empty or the selection is cancelled.
 seleccionar_usuario() {
     local titulo="${1:-Selecciona un usuario:}"
     local usuarios seleccion
@@ -176,9 +146,8 @@ seleccionar_usuario() {
     printf '%s\n' "$seleccion"
 }
 
-# ─── seleccionar_grupo <titulo> ──────────────────────────────────────────────
-# Lista grupos con GID >= 1000 usando gum choose.
-# Retorna el nombre seleccionado en stdout. Retorna 1 si cancela o no hay grupos.
+# List non-system groups and return the selected group name.
+# Return 1 when the list is empty or the selection is cancelled.
 seleccionar_grupo() {
     local titulo="${1:-Selecciona un grupo:}"
     local grupos seleccion
@@ -200,9 +169,7 @@ seleccionar_grupo() {
     printf '%s\n' "$seleccion"
 }
 
-# ─── input_campo <placeholder> ───────────────────────────────────────────────
-# Campo de entrada de texto con gum input.
-# Retorna el texto ingresado en stdout.
+# Read a free-form text value and print it to stdout.
 input_campo() {
     local valor
 
@@ -215,10 +182,8 @@ input_campo() {
     printf '%s\n' "$valor"
 }
 
-# ─── confirmar_whiptail <pregunta> ───────────────────────────────────────────
-# Confirmación visual con gum confirm.
-# Retorna 0 si confirma (Yes), 1 si cancela (No).
-confirmar_whiptail() {
+# Ask for UI confirmation using gum when available.
+confirm_ui() {
     if ui_interactiva; then
         gum confirm "$1"
     else
@@ -226,12 +191,21 @@ confirmar_whiptail() {
     fi
 }
 
-# ─── seleccionar_directorio <titulo> ─────────────────────────────────────────
-# Selector visual de directorios con fzf + preview, o ingreso manual.
-# Retorna la ruta seleccionada en stdout. Retorna 1 si cancela.
+# Backward-compatible alias kept for legacy callers and tests.
+confirmar_whiptail() {
+    confirm_ui "$1"
+}
+
+# Select a directory with either an fzf browser or manual input.
+# Return the chosen path on stdout and 1 on cancellation.
 seleccionar_directorio() {
     local titulo="${1:-Selecciona un directorio:}"
     local modo
+
+    if ! ui_interactiva; then
+        input_campo "$titulo"
+        return $?
+    fi
 
     modo=$(gum choose \
         --header "¿Cómo deseas seleccionar la ruta?" \
