@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
 #
-# src/security.sh — Modulo de seguridad y monitoreo
-# Rama: feat/security-module
-#
-# Requiere que scripts/install_security.sh ya haya sido ejecutado.
+# src/security.sh - Security and monitoring module.
+# This module expects scripts/install_security.sh to have been run beforehand.
 
-# ─── verificar_comando <comando> ──────────────────────────────────────────────
-# Verifica que la herramienta exista antes de usarla.
+# Ensure a required command is available before using it.
 verificar_comando() {
     local comando="$1"
 
@@ -18,8 +15,7 @@ verificar_comando() {
     return 0
 }
 
-# ─── verificar_servicio <servicio> ────────────────────────────────────────────
-# Verifica si un servicio esta activo; si no, intenta iniciarlo.
+# Ensure a service is active and try to start it when needed.
 verificar_servicio() {
     local servicio="$1"
 
@@ -41,8 +37,7 @@ verificar_servicio() {
     return 1
 }
 
-# ─── abrir_nagios ─────────────────────────────────────────────────────────────
-# Verifica Nagios y HTTPD, intenta iniciar servicios y abre navegador.
+# Start Nagios-related services if needed and open the dashboard URL.
 abrir_nagios() {
     local url="http://localhost/nagios"
 
@@ -60,7 +55,14 @@ abrir_nagios() {
 
     if command -v xdg-open >/dev/null 2>&1; then
         msg_ok "Intentando abrir Nagios en el navegador..."
-        xdg-open "$url" >/dev/null 2>&1 &
+
+        # Open the browser as the original sudo user when possible so the
+        # graphical session remains accessible.
+        if [[ -n "$SUDO_USER" && "$SUDO_USER" != "root" ]]; then
+            sudo -u "$SUDO_USER" xdg-open "$url" >/dev/null 2>&1 &
+        else
+            xdg-open "$url" >/dev/null 2>&1 &
+        fi
     else
         msg_warn "xdg-open no disponible. Abre manualmente: $url"
     fi
@@ -68,8 +70,7 @@ abrir_nagios() {
     pausar
 }
 
-# ─── abrir_wireshark ──────────────────────────────────────────────────────────
-# Lanza Wireshark en segundo plano para no bloquear el script.
+# Launch Wireshark in the background to avoid blocking the shell.
 abrir_wireshark() {
     verificar_comando wireshark || return
 
@@ -82,17 +83,16 @@ abrir_wireshark() {
     pausar
 }
 
-# ─── ejecutar_nmap ────────────────────────────────────────────────────────────
-# Pide objetivo y tipo de escaneo.
+# Run Nmap against a chosen target and keep the scan-type menu open.
 ejecutar_nmap() {
     local objetivo
-    local opcion
+    local tipo
 
     verificar_comando nmap || return
 
     print_header "Nmap"
 
-    read -rp "Objetivo a escanear, ejemplo localhost, 192.168.1.1 o 192.168.1.0/24: " objetivo
+    objetivo=$(input_campo "Objetivo: localhost, 192.168.1.1 o 192.168.1.0/24")
 
     if [[ -z "$objetivo" ]]; then
         msg_err "Debes ingresar un objetivo."
@@ -100,43 +100,36 @@ ejecutar_nmap() {
         return
     fi
 
-    echo ""
-    echo "Tipo de escaneo:"
-    echo "1) Escaneo basico"
-    echo "2) Deteccion de versiones"
-    echo "3) Escaneo red local"
-    echo "0) Volver"
-    echo ""
+    while true; do
+        tipo=$(gum choose \
+            --header "Tipo de escaneo para: $objetivo" \
+            --cursor "▸ " \
+            "Escaneo básico de puertos" \
+            "Detección de versiones (-sV)" \
+            "Escaneo de red local (-sn)" \
+            "← Volver al menú anterior")
 
-    read -rp "Selecciona una opcion: " opcion
-    echo ""
+        [[ -z "$tipo" || "$tipo" == "← Volver al menú anterior" ]] && return
 
-    case "$opcion" in
-        1)
-            msg_ok "Ejecutando: nmap $objetivo"
-            nmap "$objetivo"
-            ;;
-        2)
-            msg_ok "Ejecutando: nmap -sV $objetivo"
-            nmap -sV "$objetivo"
-            ;;
-        3)
-            msg_ok "Ejecutando: nmap -sn $objetivo"
-            nmap -sn "$objetivo"
-            ;;
-        0)
-            return
-            ;;
-        *)
-            msg_err "Opcion invalida."
-            ;;
-    esac
-
-    pausar
+        case "$tipo" in
+            "Escaneo básico de puertos")
+                msg_ok "Ejecutando: nmap $objetivo"
+                nmap "$objetivo"
+                ;;
+            "Detección de versiones (-sV)")
+                msg_ok "Ejecutando: nmap -sV $objetivo"
+                nmap -sV "$objetivo"
+                ;;
+            "Escaneo de red local (-sn)")
+                msg_ok "Ejecutando: nmap -sn $objetivo"
+                nmap -sn "$objetivo"
+                ;;
+        esac
+        pausar
+    done
 }
 
-# ─── ejecutar_iftop ───────────────────────────────────────────────────────────
-# Abre monitor en tiempo real. Con q regresa al menu.
+# Open iftop in the current terminal session.
 ejecutar_iftop() {
     verificar_comando iftop || return
 
@@ -152,74 +145,50 @@ ejecutar_iftop() {
     pausar
 }
 
-# ─── menu_monitor_red ─────────────────────────────────────────────────────────
-# Submenu para elegir entre nmap o iftop.
+# Submenu for interactive network monitoring tools.
 menu_monitor_red() {
     local opcion
 
     while true; do
         clear
         print_header "Monitor de Red"
+        opcion=$(gum choose \
+            --header "Selecciona una herramienta:" \
+            --cursor "▸ " \
+            "Nmap — escaneo de puertos y hosts" \
+            "iftop — monitor de tráfico en tiempo real" \
+            "← Volver")
 
-        echo "1) Nmap"
-        echo "2) iftop"
-        echo "0) Volver"
-        echo ""
-
-        read -rp "Selecciona una opcion: " opcion
+        [[ -z "$opcion" || "$opcion" == "← Volver" ]] && return
 
         case "$opcion" in
-            1)
-                ejecutar_nmap
-                ;;
-            2)
-                ejecutar_iftop
-                ;;
-            0)
-                return
-                ;;
-            *)
-                msg_err "Opcion invalida."
-                pausar
-                ;;
+            "Nmap — escaneo de puertos y hosts")         ejecutar_nmap  ;;
+            "iftop — monitor de tráfico en tiempo real") ejecutar_iftop ;;
         esac
     done
 }
 
-# ─── menu_seguridad ───────────────────────────────────────────────────────────
-# Menu principal del modulo de seguridad.
+# Main menu for security and monitoring actions.
 menu_seguridad() {
     local opcion
 
     while true; do
         clear
         print_header "Seguridad / Monitoreo"
+        opcion=$(gum choose \
+            --header "Selecciona una opción:" \
+            --cursor "▸ " \
+            "Abrir Nagios (dashboard web)" \
+            "Abrir Wireshark (captura de tráfico)" \
+            "Monitor de red: Nmap o iftop" \
+            "← Volver al menú principal")
 
-        echo "1) Abrir Nagios"
-        echo "2) Abrir Wireshark"
-        echo "3) Monitor de red: Nmap o iftop"
-        echo "0) Volver al menu principal"
-        echo ""
-
-        read -rp "Selecciona una opcion: " opcion
+        [[ -z "$opcion" || "$opcion" == "← Volver al menú principal" ]] && return
 
         case "$opcion" in
-            1)
-                abrir_nagios
-                ;;
-            2)
-                abrir_wireshark
-                ;;
-            3)
-                menu_monitor_red
-                ;;
-            0)
-                return
-                ;;
-            *)
-                msg_err "Opcion invalida."
-                pausar
-                ;;
+            "Abrir Nagios (dashboard web)")          abrir_nagios     ;;
+            "Abrir Wireshark (captura de tráfico)")  abrir_wireshark  ;;
+            "Monitor de red: Nmap o iftop")          menu_monitor_red ;;
         esac
     done
 }
