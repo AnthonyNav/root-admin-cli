@@ -16,3 +16,8 @@
 # Archivos del sistema
 .DS_Store
 Thumbs.db
+
+# Reportes generados por pruebas
+tests/report_*.txt
+
+sublimehq-pub.gpg

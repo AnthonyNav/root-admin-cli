@@ -1,0 +1,25 @@
+Full Regression Report — Gum Migration
+Branch: feat/gum-design-upgrade
+Date: 2026-05-12 16:28:57 America/Mexico_City
+
+Commands executed in sequence:
+1. bash tests/test_gum_phase1.sh
+2. bash tests/test_gum_phase2.sh
+3. bash tests/test_gum_phase3.sh
+4. bash tests/test_utils.sh
+
+Results:
+- test_gum_phase1.sh: PASS — 29 passed / 0 failed / 29 total
+- test_gum_phase2.sh: PASS — 20 passed / 0 failed / 20 total
+- test_gum_phase3.sh: PASS — 24 passed / 0 failed / 24 total
+- test_utils.sh: PASS — 16 passed / 0 failed / 16 total
+
+Consolidated summary:
+- Suites executed: 4
+- Suites passed: 4
+- Suites failed: 0
+- Total checks passed: 89
+- Total checks failed: 0
+
+Status:
+- Full regression green after gum migration.

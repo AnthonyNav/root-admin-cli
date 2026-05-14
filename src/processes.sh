@@ -1,61 +1,60 @@
 #!/usr/bin/env bash
 #
-# src/processes.sh — Módulo de visualización de procesos por usuario
-# Plataforma: AlmaLinux 9  |  Bash 5.0+
-#
-# Autor del modulo: Osvaldo  (PR #5 · feat/processes-module)
-#
+# src/processes.sh - Process inspection module.
 
-# menu_procesos 
+# Main menu for process-related actions.
 menu_procesos() {
     local opcion
     while true; do
         clear
         print_header "Procesos por Usuario"
-        echo "  1) Ver procesos del usuario (snapshot)"
-        echo "  2) Monitor en tiempo real (top)"
-        echo ""
-        echo "  0) Volver al menú principal"
-        echo ""
-        read -rp "  Selecciona una opción: " opcion
+        opcion=$(seleccionar_menu \
+            "Procesos por Usuario" \
+            "Selecciona una opción:" \
+            "1" "Ver procesos del usuario (snapshot)" \
+            "2" "Monitor en tiempo real (top)" \
+            "3" "Ver procesos de root" \
+            "0" "Volver al menú principal")
 
-        case $opcion in
+        [[ -z "$opcion" || "$opcion" == "0" ]] && return
+
+        case "$opcion" in
             1) procesos_snapshot ;;
             2) procesos_monitor  ;;
-            0) return            ;;
+            3) procesos_root     ;;
             *) msg_warn "Opción inválida."; pausar ;;
         esac
     done
 }
 
-# procesos_snapshot 
+# Show a static snapshot of the selected user's processes.
 procesos_snapshot() {
     local usuario
     print_header "Procesos del Usuario (snapshot)"
     
-    read -rp "  Ingresa el nombre de usuario a consultar: " usuario
+    usuario=$(seleccionar_usuario "Selecciona el usuario a consultar:")
+    [[ -z "$usuario" ]] && return 0
     echo ""
 
-    # 1. Validar nombre vacío
+    # Guard against empty values when the selector falls back to plain input.
     if [[ -z "$usuario" ]]; then
         msg_err "El nombre no puede estar vacío."
         pausar
         return
     fi
 
-    # 2. Verificar existencia con el helper del proyecto
+    # Confirm the selected user still exists before calling ps.
     if ! usuario_existe "$usuario"; then
         msg_err "El usuario '$usuario' no existe en el sistema."
         pausar
         return
     fi
 
-    # 3. Obtener total de procesos
+    # Count processes first so the summary message matches the output.
     local total
     total=$(ps -u "$usuario" --no-headers | wc -l)
 
     if [[ "$total" -eq 0 ]]; then
-        # Texto exacto según TASKS.md
         msg_warn "No hay procesos activos para '$usuario'."
     else
         ps aux --user "$usuario"
@@ -66,33 +65,45 @@ procesos_snapshot() {
     pausar
 }
 
-# procesos_monitor 
+# Run top filtered by the selected user.
 procesos_monitor() {
     local usuario
     print_header "Monitor en Tiempo Real"
     
-    read -rp "  Ingresa el usuario para monitorear: " usuario
+    usuario=$(seleccionar_usuario "Selecciona el usuario para monitorear:")
+    [[ -z "$usuario" ]] && return 0
     echo ""
 
-    # 1. Validar vacío
+    # Guard against empty values when the selector falls back to plain input.
     if [[ -z "$usuario" ]]; then
         msg_err "El nombre no puede estar vacío."
         pausar
         return
     fi
 
-    # 2. Verificar existencia con helper
+    # Confirm the selected user still exists before opening top.
     if ! usuario_existe "$usuario"; then
         msg_err "El usuario '$usuario' no existe."
         pausar
         return
     fi
 
-    # 3. Aviso exacto según TASKS.md (sin sleep)
+    # Remind the operator how to leave top.
     msg_warn "Presiona 'q' para salir del monitor."
     
     top -u "$usuario"
 
-    # 4. Pausar al regresar de top
+    # Pause after top returns so the user can read the summary line.
+    pausar
+}
+
+# Show current processes owned by root.
+procesos_root() {
+    print_header "Procesos de root"
+    
+    ps aux --user root
+    
+    echo ""
+    msg_ok "Mostrando procesos actuales del usuario 'root'."
     pausar
 }
